@@ -80,24 +80,7 @@
     },
     "dmg": {
       "title": "CCD Viewer ${version}",
-      "backgroundColor": "#0f172a",
-      "window": {
-        "width": 540,
-        "height": 380
-      },
-      "contents": [
-        {
-          "x": 140,
-          "y": 200,
-          "type": "file"
-        },
-        {
-          "x": 400,
-          "y": 200,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
+      "format": "UDZO"
     },
     "nsis": {
       "oneClick": false,
