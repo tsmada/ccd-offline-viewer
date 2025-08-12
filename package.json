@@ -72,28 +72,7 @@
           "target": "dmg",
           "arch": ["x64"]
         }
-      ],
-      "dmg": {
-        "title": "CCD Viewer ${version}",
-        "backgroundColor": "#0f172a",
-        "window": {
-          "width": 540,
-          "height": 380
-        },
-        "contents": [
-          {
-            "x": 140,
-            "y": 200,
-            "type": "file"
-          },
-          {
-            "x": 400,
-            "y": 200,
-            "type": "link",
-            "path": "/Applications"
-          }
-        ]
-      }
+      ]
     },
     "win": {
       "icon": "renderer/assets/icon.ico",
@@ -102,33 +81,44 @@
           "target": "nsis",
           "arch": ["x64"]
         }
-      ],
-      "nsis": {
-        "oneClick": false,
-        "allowToChangeInstallationDirectory": true,
-        "createDesktopShortcut": true,
-        "createStartMenuShortcut": true,
-        "shortcutName": "CCD Viewer"
-      }
+      ]
     },
     "linux": {
       "icon": "renderer/assets/icon.png",
       "target": ["AppImage", "deb"],
-      "category": "Medical",
-      "desktop": {
-        "Name": "CCD Viewer",
-        "Comment": "Modern, HIPAA-compliant Continuity of Care Document viewer",
-        "Categories": "Office;Medical;"
-      }
+      "category": "Medical"
+    },
+    "dmg": {
+      "title": "CCD Viewer ${version}",
+      "backgroundColor": "#0f172a",
+      "window": {
+        "width": 540,
+        "height": 380
+      },
+      "contents": [
+        {
+          "x": 140,
+          "y": 200,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 200,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
     },
     "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "CCD Viewer",
       "displayLanguageSelector": false,
       "installerIcon": "renderer/assets/icon.ico",
       "uninstallerIcon": "renderer/assets/icon.ico",
-      "installerHeaderIcon": "renderer/assets/icon.ico",
-      "createDesktopShortcut": true,
-      "createStartMenuShortcut": true,
-      "shortcutName": "CCD Viewer"
+      "installerHeaderIcon": "renderer/assets/icon.ico"
     }
   }
 }
