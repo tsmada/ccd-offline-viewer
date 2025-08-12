@@ -78,37 +78,44 @@ jobs:
       - name: Find and rename artifacts
         shell: bash
         run: |
+          VERSION="${{ github.event.inputs.version || github.ref_name }}"
+          # Remove 'v' prefix if present for version matching
+          VERSION_NO_V=${VERSION#v}
+          
           if [ "${{ matrix.platform }}" = "mac-intel" ]; then
-            # Find Intel DMG
-            DMG_FILE=$(find dist -name "*.dmg" ! -name "*arm64*" ! -name "*universal*" | head -1)
+            # Find Intel DMG (pattern: "CCD Viewer-VERSION.dmg")
+            DMG_FILE=$(find dist -name "CCD Viewer-${VERSION_NO_V}.dmg" | head -1)
             if [ -n "$DMG_FILE" ]; then
-              mv "$DMG_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-intel.dmg"
-              echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-intel.dmg" >> $GITHUB_ENV
+              mv "$DMG_FILE" "dist/CCD-Viewer-${VERSION}-mac-intel.dmg"
+              echo "ARTIFACT_PATH=dist/CCD-Viewer-${VERSION}-mac-intel.dmg" >> $GITHUB_ENV
             else
-              echo "No Intel DMG found. Available files:"
+              echo "No Intel DMG found. Expected: CCD Viewer-${VERSION_NO_V}.dmg"
+              echo "Available files:"
               find dist -name "*.dmg" -exec basename {} \;
               exit 1
             fi
           elif [ "${{ matrix.platform }}" = "mac-universal" ]; then
-            # Find Universal DMG (electron-builder creates files like "CCD Viewer-1.0.0-universal.dmg")
-            DMG_FILE=$(find dist -name "*universal.dmg" | head -1)
+            # Find Universal DMG (pattern: "CCD Viewer-VERSION-universal.dmg")
+            DMG_FILE=$(find dist -name "CCD Viewer-${VERSION_NO_V}-universal.dmg" | head -1)
             if [ -n "$DMG_FILE" ]; then
-              mv "$DMG_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-universal.dmg"
-              echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-universal.dmg" >> $GITHUB_ENV
+              mv "$DMG_FILE" "dist/CCD-Viewer-${VERSION}-mac-universal.dmg"
+              echo "ARTIFACT_PATH=dist/CCD-Viewer-${VERSION}-mac-universal.dmg" >> $GITHUB_ENV
             else
-              echo "No universal DMG found. Available files:"
+              echo "No universal DMG found. Expected: CCD Viewer-${VERSION_NO_V}-universal.dmg"
+              echo "Available files:"
               find dist -name "*.dmg" -exec basename {} \;
               exit 1
             fi
           elif [ "${{ matrix.platform }}" = "win" ]; then
-            # Find Windows installer
-            EXE_FILE=$(find dist -name "*.exe" | head -1)
+            # Find Windows installer (pattern: "CCD Viewer Setup VERSION.exe")
+            EXE_FILE=$(find dist -name "CCD Viewer Setup ${VERSION_NO_V}.exe" | head -1)
             if [ -n "$EXE_FILE" ]; then
-              mv "$EXE_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-windows-x64.exe"
-              echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-windows-x64.exe" >> $GITHUB_ENV
+              mv "$EXE_FILE" "dist/CCD-Viewer-${VERSION}-windows-x64.exe"
+              echo "ARTIFACT_PATH=dist/CCD-Viewer-${VERSION}-windows-x64.exe" >> $GITHUB_ENV
             else
-              echo "No Windows EXE found. Available files:"
-              find dist -name "*.*" -exec basename {} \;
+              echo "No Windows EXE found. Expected: CCD Viewer Setup ${VERSION_NO_V}.exe"
+              echo "Available files:"
+              find dist -name "*.exe" -exec basename {} \;
               exit 1
             fi
           fi
