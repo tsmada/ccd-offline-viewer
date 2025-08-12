@@ -18,14 +18,14 @@ jobs:
         include:
           - os: macos-latest
             arch: x64
-            platform: mac
+            platform: mac-intel
             artifact_name: 'CCD Viewer-${{ github.event.inputs.version || github.ref_name }}.dmg'
             build_command: 'npm run dist:mac'
           - os: macos-latest
-            arch: arm64
-            platform: mac-arm64
-            artifact_name: 'CCD Viewer-${{ github.event.inputs.version || github.ref_name }}-arm64.dmg'
-            build_command: 'npm run dist:mac:arm64'
+            arch: universal
+            platform: mac-universal
+            artifact_name: 'CCD Viewer-${{ github.event.inputs.version || github.ref_name }}-universal.dmg'
+            build_command: 'npm run dist:mac:universal'
           - os: windows-latest
             arch: x64
             platform: win
@@ -78,19 +78,19 @@ jobs:
       - name: Find and rename artifacts
         shell: bash
         run: |
-          if [ "${{ matrix.platform }}" = "mac" ]; then
+          if [ "${{ matrix.platform }}" = "mac-intel" ]; then
             # Find Intel DMG
-            DMG_FILE=$(find dist -name "*.dmg" ! -name "*arm64*" | head -1)
+            DMG_FILE=$(find dist -name "*.dmg" ! -name "*arm64*" ! -name "*universal*" | head -1)
             if [ -n "$DMG_FILE" ]; then
               mv "$DMG_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-intel.dmg"
               echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-intel.dmg" >> $GITHUB_ENV
             fi
-          elif [ "${{ matrix.platform }}" = "mac-arm64" ]; then
-            # Find ARM64 DMG
-            DMG_FILE=$(find dist -name "*arm64*.dmg" | head -1)
+          elif [ "${{ matrix.platform }}" = "mac-universal" ]; then
+            # Find Universal DMG
+            DMG_FILE=$(find dist -name "*universal*.dmg" | head -1)
             if [ -n "$DMG_FILE" ]; then
-              mv "$DMG_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-arm64.dmg"
-              echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-arm64.dmg" >> $GITHUB_ENV
+              mv "$DMG_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-universal.dmg"
+              echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-universal.dmg" >> $GITHUB_ENV
             fi
           elif [ "${{ matrix.platform }}" = "win" ]; then
             # Find Windows installer
@@ -140,8 +140,8 @@ jobs:
 
             ### 📦 Downloads
 
-            - **macOS (Intel)**: `CCD-Viewer-*-mac-intel.dmg`
-            - **macOS (Apple Silicon)**: `CCD-Viewer-*-mac-arm64.dmg` 
+            - **macOS (Universal)**: `CCD-Viewer-*-mac-universal.dmg` (Works on both Intel and Apple Silicon)
+            - **macOS (Intel)**: `CCD-Viewer-*-mac-intel.dmg` (Intel Macs only)
             - **Windows (x64)**: `CCD-Viewer-*-windows-x64.exe`
 
             ### ✨ Features

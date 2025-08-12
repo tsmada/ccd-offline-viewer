@@ -6,6 +6,7 @@ class Store {
         this.state = {
             document: null,
             fileName: null,
+            rawXML: null,
             loading: false,
             error: null,
             theme: 'winamp',
@@ -117,6 +118,10 @@ class Store {
         });
     }
 
+    setRawXML(rawXML) {
+        this.setState({ rawXML });
+    }
+
     setFileName(fileName) {
         this.setState({ fileName });
     }
@@ -171,6 +176,7 @@ class Store {
         this.setState({
             document: null,
             fileName: null,
+            rawXML: null,
             loading: false,
             error: null,
             activeTab: 'patient'

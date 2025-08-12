@@ -176,6 +176,9 @@ class CCDViewerApp {
             const fileName = filePath.split(/[\\/]/).pop();
             window.store?.setFileName(fileName);
 
+            // Store raw XML content
+            window.store?.setRawXML(result.content);
+
             // Parse document
             const parser = new window.CCDParser();
             const ccdDocument = await parser.parse(result.content);

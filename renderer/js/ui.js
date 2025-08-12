@@ -12,8 +12,12 @@ class UIManager {
             { id: 'problems', label: 'Problems', icon: '🔍' },
             { id: 'procedures', label: 'Procedures', icon: '🏥' },
             { id: 'encounters', label: 'Encounters', icon: '📋' },
+            { id: 'immunizations', label: 'Immunizations', icon: '💉' },
             { id: 'vitals', label: 'Vital Signs', icon: '📊' },
-            { id: 'labs', label: 'Lab Results', icon: '🧪' }
+            { id: 'labs', label: 'Lab Results', icon: '🧪' },
+            { id: 'socialHistory', label: 'Social History', icon: '🚭' },
+            { id: 'functionalStatus', label: 'Functional Status', icon: '♿' },
+            { id: 'planOfCare', label: 'Plan of Care', icon: '📝' }
         ];
     }
 
@@ -85,11 +89,23 @@ class UIManager {
         document.getElementById('export-pdf')?.addEventListener('click', this.exportToPDF.bind(this));
         document.getElementById('export-json')?.addEventListener('click', this.exportToJSON.bind(this));
         document.getElementById('export-csv')?.addEventListener('click', this.exportToCSV.bind(this));
+        document.getElementById('view-raw-xml')?.addEventListener('click', this.viewRawXML.bind(this));
 
         // Header buttons
         document.getElementById('toggle-visualizer')?.addEventListener('click', this.toggleVisualizer.bind(this));
         document.getElementById('settings-btn')?.addEventListener('click', this.showSettings.bind(this));
         document.getElementById('close-btn')?.addEventListener('click', this.closeApp.bind(this));
+
+        // Raw XML modal buttons
+        document.getElementById('close-raw-xml-modal')?.addEventListener('click', this.closeRawXMLModal.bind(this));
+        document.getElementById('copy-raw-xml')?.addEventListener('click', this.copyRawXML.bind(this));
+        
+        // Close modal when clicking outside
+        document.getElementById('raw-xml-modal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'raw-xml-modal') {
+                this.closeRawXMLModal();
+            }
+        });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', this.handleKeydown.bind(this));
@@ -204,6 +220,9 @@ class UIManager {
 
             // Read file content
             const content = await this.readFileAsText(file);
+            
+            // Store raw XML content
+            window.store.setRawXML(content);
             
             // Parse CCD
             const parser = new window.CCDParser();
@@ -433,8 +452,12 @@ class UIManager {
             case 'problems': return document.problems?.length > 0;
             case 'procedures': return document.procedures?.length > 0;
             case 'encounters': return document.encounters?.length > 0;
+            case 'immunizations': return document.immunizations?.length > 0;
             case 'vitals': return document.vitalSigns?.length > 0;
             case 'labs': return document.labResults?.length > 0;
+            case 'socialHistory': return document.socialHistory?.length > 0;
+            case 'functionalStatus': return document.functionalStatus?.length > 0;
+            case 'planOfCare': return document.planOfCare?.length > 0;
             default: return false;
         }
     }
@@ -499,11 +522,23 @@ class UIManager {
             case 'encounters':
                 content = this.renderEncountersContent(ccdDocument.encounters || []);
                 break;
+            case 'immunizations':
+                content = this.renderImmunizationsContent(ccdDocument.immunizations || []);
+                break;
             case 'vitals':
                 content = this.renderVitalsContent(ccdDocument.vitalSigns || []);
                 break;
             case 'labs':
                 content = this.renderLabsContent(ccdDocument.labResults || []);
+                break;
+            case 'socialHistory':
+                content = this.renderSocialHistoryContent(ccdDocument.socialHistory || []);
+                break;
+            case 'functionalStatus':
+                content = this.renderFunctionalStatusContent(ccdDocument.functionalStatus || []);
+                break;
+            case 'planOfCare':
+                content = this.renderPlanOfCareContent(ccdDocument.planOfCare || []);
                 break;
             default:
                 content = '<p class="text-text-secondary">Tab content not implemented</p>';
@@ -818,6 +853,156 @@ class UIManager {
     }
 
     /**
+     * Render immunizations content
+     */
+    renderImmunizationsContent(immunizations) {
+        if (immunizations.length === 0) {
+            return '<p class="text-text-secondary">No immunizations recorded</p>';
+        }
+
+        const rows = immunizations.map(imm => `
+            <tr>
+                <td>${imm.vaccine || 'Unknown'}</td>
+                <td>${imm.date ? window.store.formatDate(imm.date) : 'Unknown'}</td>
+                <td>${imm.status || 'Unknown'}</td>
+                <td>${imm.route || 'Not specified'}</td>
+                <td>${imm.manufacturer || 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Immunizations</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Vaccine</th>
+                            <th>Date</th>
+                            <th>Status</th>
+                            <th>Route</th>
+                            <th>Manufacturer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render social history content
+     */
+    renderSocialHistoryContent(socialHistory) {
+        if (socialHistory.length === 0) {
+            return '<p class="text-text-secondary">No social history recorded</p>';
+        }
+
+        const rows = socialHistory.map(item => `
+            <tr>
+                <td>${item.type || 'Unknown'}</td>
+                <td>${item.value || 'Not specified'}</td>
+                <td>${item.status || 'Unknown'}</td>
+                <td>${item.date ? window.store.formatDate(item.date) : 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Social History</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Value</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render functional status content
+     */
+    renderFunctionalStatusContent(functionalStatus) {
+        if (functionalStatus.length === 0) {
+            return '<p class="text-text-secondary">No functional status recorded</p>';
+        }
+
+        const rows = functionalStatus.map(item => `
+            <tr>
+                <td>${item.assessment || 'Unknown'}</td>
+                <td>${item.result || 'Not specified'}</td>
+                <td>${item.status || 'Unknown'}</td>
+                <td>${item.date ? window.store.formatDate(item.date) : 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Functional Status</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Assessment</th>
+                            <th>Result</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render plan of care content
+     */
+    renderPlanOfCareContent(planOfCare) {
+        if (planOfCare.length === 0) {
+            return '<p class="text-text-secondary">No plan of care recorded</p>';
+        }
+
+        const rows = planOfCare.map(item => `
+            <tr>
+                <td>${item.plan || 'Unknown'}</td>
+                <td>${item.status || 'Unknown'}</td>
+                <td>${item.plannedDate ? window.store.formatDate(item.plannedDate) : 'Unknown'}</td>
+                <td>${item.notes || 'No notes'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Plan of Care</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Plan</th>
+                            <th>Status</th>
+                            <th>Planned Date</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
      * Export functions
      */
     async exportToPDF() {
@@ -839,6 +1024,105 @@ class UIManager {
         const csvData = window.store?.exportAsCSV();
         if (csvData) {
             this.downloadFile(csvData, 'ccd-document.csv', 'text/csv');
+        }
+    }
+
+    /**
+     * View raw XML content in modal
+     */
+    viewRawXML() {
+        const rawXML = window.store?.getState('rawXML');
+        if (!rawXML) {
+            this.showToast('No raw XML content available', 'error');
+            return;
+        }
+
+        // Format XML for display
+        const formattedXML = this.formatXML(rawXML);
+        
+        // Set content and show modal
+        const content = document.getElementById('raw-xml-content');
+        const modal = document.getElementById('raw-xml-modal');
+        
+        if (content && modal) {
+            content.textContent = formattedXML;
+            modal.classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+        }
+    }
+
+    /**
+     * Close raw XML modal
+     */
+    closeRawXMLModal() {
+        const modal = document.getElementById('raw-xml-modal');
+        if (modal) {
+            modal.classList.add('hidden');
+            document.body.style.overflow = '';
+        }
+    }
+
+    /**
+     * Copy raw XML to clipboard
+     */
+    async copyRawXML() {
+        const rawXML = window.store?.getState('rawXML');
+        if (!rawXML) {
+            this.showToast('No XML content to copy', 'error');
+            return;
+        }
+
+        try {
+            await navigator.clipboard.writeText(rawXML);
+            this.showToast('XML content copied to clipboard', 'success');
+        } catch (error) {
+            console.error('Failed to copy XML:', error);
+            this.showToast('Failed to copy XML content', 'error');
+        }
+    }
+
+    /**
+     * Format XML for display with proper indentation
+     */
+    formatXML(xml) {
+        try {
+            const parser = new DOMParser();
+            const xmlDoc = parser.parseFromString(xml, 'text/xml');
+            const serializer = new XMLSerializer();
+            const formatted = serializer.serializeToString(xmlDoc);
+            
+            // Basic indentation formatting
+            let indent = 0;
+            const lines = formatted.split('>');
+            let result = '';
+            
+            lines.forEach((line, index) => {
+                if (line.includes('</')) {
+                    indent--;
+                }
+                
+                if (index > 0) {
+                    result += '  '.repeat(Math.max(0, indent)) + line;
+                    if (index < lines.length - 1) {
+                        result += '>';
+                    }
+                } else {
+                    result += line + '>';
+                }
+                
+                if (line.includes('<') && !line.includes('</') && !line.includes('/>')) {
+                    indent++;
+                }
+                
+                if (index < lines.length - 1) {
+                    result += '\n';
+                }
+            });
+            
+            return result;
+        } catch (error) {
+            console.warn('Failed to format XML:', error);
+            return xml; // Return original if formatting fails
         }
     }
 
