@@ -84,13 +84,21 @@ jobs:
             if [ -n "$DMG_FILE" ]; then
               mv "$DMG_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-intel.dmg"
               echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-intel.dmg" >> $GITHUB_ENV
+            else
+              echo "No Intel DMG found. Available files:"
+              find dist -name "*.dmg" -exec basename {} \;
+              exit 1
             fi
           elif [ "${{ matrix.platform }}" = "mac-universal" ]; then
-            # Find Universal DMG
-            DMG_FILE=$(find dist -name "*universal*.dmg" | head -1)
+            # Find Universal DMG (electron-builder creates files like "CCD Viewer-1.0.0-universal.dmg")
+            DMG_FILE=$(find dist -name "*universal.dmg" | head -1)
             if [ -n "$DMG_FILE" ]; then
               mv "$DMG_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-universal.dmg"
               echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-mac-universal.dmg" >> $GITHUB_ENV
+            else
+              echo "No universal DMG found. Available files:"
+              find dist -name "*.dmg" -exec basename {} \;
+              exit 1
             fi
           elif [ "${{ matrix.platform }}" = "win" ]; then
             # Find Windows installer
@@ -98,6 +106,10 @@ jobs:
             if [ -n "$EXE_FILE" ]; then
               mv "$EXE_FILE" "dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-windows-x64.exe"
               echo "ARTIFACT_PATH=dist/CCD-Viewer-${{ github.event.inputs.version || github.ref_name }}-windows-x64.exe" >> $GITHUB_ENV
+            else
+              echo "No Windows EXE found. Available files:"
+              find dist -name "*.*" -exec basename {} \;
+              exit 1
             fi
           fi
 
