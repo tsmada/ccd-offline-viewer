@@ -53,7 +53,18 @@ jobs:
           VERSION="${{ github.event.inputs.version || github.ref_name }}"
           # Remove 'v' prefix if present
           VERSION=${VERSION#v}
-          npm version --no-git-tag-version $VERSION
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          echo "Target version: $VERSION"
+          
+          # Only update if versions are different
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            echo "Updating version from $CURRENT_VERSION to $VERSION"
+            npm version --no-git-tag-version $VERSION
+          else
+            echo "Version $VERSION is already set, skipping update"
+          fi
 
       - name: Build application
         run: ${{ matrix.build_command }}

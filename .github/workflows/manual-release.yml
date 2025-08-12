@@ -60,7 +60,18 @@ jobs:
         run: |
           VERSION="${{ inputs.version }}"
           VERSION=${VERSION#v}  # Remove 'v' prefix
-          npm version --no-git-tag-version "$VERSION"
+          # Get current version from package.json
+          CURRENT_VERSION=$(node -p "require('./package.json').version")
+          echo "Current version: $CURRENT_VERSION"
+          echo "Target version: $VERSION"
+          
+          # Only update if versions are different
+          if [ "$CURRENT_VERSION" != "$VERSION" ]; then
+            echo "Updating version from $CURRENT_VERSION to $VERSION"
+            npm version --no-git-tag-version "$VERSION"
+          else
+            echo "Version $VERSION is already set, skipping update"
+          fi
 
       - name: Build for ${{ matrix.platform }}
         run: ${{ matrix.build_script }}
