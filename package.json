@@ -54,19 +54,10 @@
       "node_modules/**/*",
       "package.json"
     ],
-    "extraResources": [
-      {
-        "from": "LICENSE",
-        "to": "LICENSE"
-      }
-    ],
     "mac": {
       "category": "public.app-category.medical",
-      "icon": "renderer/assets/icon.icns",
-      "hardenedRuntime": true,
+      "hardenedRuntime": false,
       "gatekeeperAssess": false,
-      "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist",
       "target": [
         {
           "target": "dmg",
@@ -75,7 +66,6 @@
       ]
     },
     "win": {
-      "icon": "renderer/assets/icon.ico",
       "target": [
         {
           "target": "nsis",
@@ -84,7 +74,6 @@
       ]
     },
     "linux": {
-      "icon": "renderer/assets/icon.png",
       "target": ["AppImage", "deb"],
       "category": "Medical"
     },
@@ -115,10 +104,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "CCD Viewer",
-      "displayLanguageSelector": false,
-      "installerIcon": "renderer/assets/icon.ico",
-      "uninstallerIcon": "renderer/assets/icon.ico",
-      "installerHeaderIcon": "renderer/assets/icon.ico"
+      "displayLanguageSelector": false
     }
   }
 }
