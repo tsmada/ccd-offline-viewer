@@ -211,7 +211,6 @@
                                     <button id="export-pdf" class="winamp-button p-3 text-sm">Export as PDF</button>
                                     <button id="export-json" class="winamp-button p-3 text-sm">Export as JSON</button>
                                     <button id="export-csv" class="winamp-button p-3 text-sm">Export as CSV</button>
-                                    <button id="view-raw-xml" class="winamp-button p-3 text-sm">View Raw XML</button>
                                 </div>
                             </div>
                         </div>
@@ -233,35 +232,6 @@
 
         <!-- Toast notifications -->
         <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
-
-        <!-- Raw XML Modal -->
-        <div id="raw-xml-modal" class="fixed inset-0 z-50 hidden">
-            <div class="absolute inset-0 bg-black/50 backdrop-blur-sm"></div>
-            <div class="relative h-full flex items-center justify-center p-4">
-                <div class="winamp-panel w-full max-w-6xl max-h-[90vh] flex flex-col">
-                    <div class="flex items-center justify-between p-4 border-b border-primary">
-                        <h3 class="font-bebas text-xl text-primary">RAW XML CONTENT</h3>
-                        <div class="flex items-center gap-2">
-                            <button id="copy-raw-xml" class="winamp-button px-4 py-2 text-sm hover:bg-primary/20 transition-colors">
-                                <svg class="w-4 h-4 mr-2 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
-                                    <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
-                                </svg>
-                                Copy
-                            </button>
-                            <button id="close-raw-xml-modal" class="winamp-button p-2 hover:bg-error/20 transition-colors">
-                                <svg class="w-4 h-4 text-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M18 6L6 18M6 6l12 12"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="flex-1 overflow-hidden p-4">
-                        <pre id="raw-xml-content" class="bg-black/30 rounded p-4 h-full overflow-auto text-sm font-mono text-text-secondary whitespace-pre-wrap"></pre>
-                    </div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Hidden file input -->

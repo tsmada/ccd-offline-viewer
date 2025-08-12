@@ -17,7 +17,8 @@ class UIManager {
             { id: 'labs', label: 'Lab Results', icon: '🧪' },
             { id: 'socialHistory', label: 'Social History', icon: '🚭' },
             { id: 'functionalStatus', label: 'Functional Status', icon: '♿' },
-            { id: 'planOfCare', label: 'Plan of Care', icon: '📝' }
+            { id: 'planOfCare', label: 'Plan of Care', icon: '📝' },
+            { id: 'rawXML', label: 'Raw XML', icon: '📄' }
         ];
     }
 
@@ -89,23 +90,11 @@ class UIManager {
         document.getElementById('export-pdf')?.addEventListener('click', this.exportToPDF.bind(this));
         document.getElementById('export-json')?.addEventListener('click', this.exportToJSON.bind(this));
         document.getElementById('export-csv')?.addEventListener('click', this.exportToCSV.bind(this));
-        document.getElementById('view-raw-xml')?.addEventListener('click', this.viewRawXML.bind(this));
 
         // Header buttons
         document.getElementById('toggle-visualizer')?.addEventListener('click', this.toggleVisualizer.bind(this));
         document.getElementById('settings-btn')?.addEventListener('click', this.showSettings.bind(this));
         document.getElementById('close-btn')?.addEventListener('click', this.closeApp.bind(this));
-
-        // Raw XML modal buttons
-        document.getElementById('close-raw-xml-modal')?.addEventListener('click', this.closeRawXMLModal.bind(this));
-        document.getElementById('copy-raw-xml')?.addEventListener('click', this.copyRawXML.bind(this));
-        
-        // Close modal when clicking outside
-        document.getElementById('raw-xml-modal')?.addEventListener('click', (e) => {
-            if (e.target.id === 'raw-xml-modal') {
-                this.closeRawXMLModal();
-            }
-        });
 
         // Keyboard shortcuts
         document.addEventListener('keydown', this.handleKeydown.bind(this));
@@ -458,6 +447,7 @@ class UIManager {
             case 'socialHistory': return document.socialHistory?.length > 0;
             case 'functionalStatus': return document.functionalStatus?.length > 0;
             case 'planOfCare': return document.planOfCare?.length > 0;
+            case 'rawXML': return !!window.store?.getState('rawXML');
             default: return false;
         }
     }
@@ -540,11 +530,19 @@ class UIManager {
             case 'planOfCare':
                 content = this.renderPlanOfCareContent(ccdDocument.planOfCare || []);
                 break;
+            case 'rawXML':
+                content = this.renderRawXMLContent();
+                break;
             default:
                 content = '<p class="text-text-secondary">Tab content not implemented</p>';
         }
 
         contentElement.innerHTML = content;
+        
+        // Set up event listeners for dynamically created buttons in raw XML tab
+        if (this.activeTab === 'rawXML') {
+            this.setupRawXMLTabEvents();
+        }
     }
 
     /**
@@ -1003,6 +1001,90 @@ class UIManager {
     }
 
     /**
+     * Render raw XML content
+     */
+    renderRawXMLContent() {
+        const rawXML = window.store?.getState('rawXML');
+        if (!rawXML) {
+            return '<p class="text-text-secondary">No raw XML content available</p>';
+        }
+
+        return `
+            <div class="document-section">
+                <div class="flex items-center justify-between mb-4">
+                    <h3>Raw XML Content</h3>
+                    <div class="flex gap-2">
+                        <button id="format-xml-content" class="winamp-button px-3 py-2 text-sm hover:bg-secondary/20 transition-colors">
+                            <svg class="w-4 h-4 mr-2 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 7h16M4 12h16M4 17h16"/>
+                            </svg>
+                            Format
+                        </button>
+                        <button id="copy-xml-content" class="winamp-button px-3 py-2 text-sm hover:bg-primary/20 transition-colors">
+                            <svg class="w-4 h-4 mr-2 inline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect width="14" height="14" x="8" y="8" rx="2" ry="2"/>
+                                <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>
+                            </svg>
+                            Copy
+                        </button>
+                    </div>
+                </div>
+                <div class="bg-black/30 rounded border border-primary/20 p-4" style="max-height: 600px; overflow: auto;">
+                    <pre id="xml-content-display" class="text-xs font-mono text-text-secondary whitespace-pre leading-relaxed" style="font-family: 'Consolas', 'Monaco', 'Courier New', monospace; tab-size: 2;">${this.escapeHtml(rawXML)}</pre>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * Escape HTML for safe display
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    /**
+     * Setup event listeners for raw XML tab buttons
+     */
+    setupRawXMLTabEvents() {
+        // Format XML button
+        const formatButton = document.getElementById('format-xml-content');
+        formatButton?.addEventListener('click', () => {
+            const rawXML = window.store?.getState('rawXML');
+            const display = document.getElementById('xml-content-display');
+            
+            if (rawXML && display) {
+                try {
+                    const formattedXML = this.formatXML(rawXML);
+                    display.textContent = formattedXML;
+                    this.showToast('XML formatted successfully', 'success');
+                } catch (error) {
+                    console.error('Failed to format XML:', error);
+                    this.showToast('Failed to format XML', 'error');
+                }
+            }
+        });
+
+        // Copy XML button
+        const copyButton = document.getElementById('copy-xml-content');
+        copyButton?.addEventListener('click', async () => {
+            const rawXML = window.store?.getState('rawXML');
+            
+            if (rawXML) {
+                try {
+                    await navigator.clipboard.writeText(rawXML);
+                    this.showToast('XML content copied to clipboard', 'success');
+                } catch (error) {
+                    console.error('Failed to copy XML:', error);
+                    this.showToast('Failed to copy XML content', 'error');
+                }
+            }
+        });
+    }
+
+    /**
      * Export functions
      */
     async exportToPDF() {
@@ -1028,102 +1110,69 @@ class UIManager {
     }
 
     /**
-     * View raw XML content in modal
-     */
-    viewRawXML() {
-        const rawXML = window.store?.getState('rawXML');
-        if (!rawXML) {
-            this.showToast('No raw XML content available', 'error');
-            return;
-        }
-
-        // Format XML for display
-        const formattedXML = this.formatXML(rawXML);
-        
-        // Set content and show modal
-        const content = document.getElementById('raw-xml-content');
-        const modal = document.getElementById('raw-xml-modal');
-        
-        if (content && modal) {
-            content.textContent = formattedXML;
-            modal.classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-        }
-    }
-
-    /**
-     * Close raw XML modal
-     */
-    closeRawXMLModal() {
-        const modal = document.getElementById('raw-xml-modal');
-        if (modal) {
-            modal.classList.add('hidden');
-            document.body.style.overflow = '';
-        }
-    }
-
-    /**
-     * Copy raw XML to clipboard
-     */
-    async copyRawXML() {
-        const rawXML = window.store?.getState('rawXML');
-        if (!rawXML) {
-            this.showToast('No XML content to copy', 'error');
-            return;
-        }
-
-        try {
-            await navigator.clipboard.writeText(rawXML);
-            this.showToast('XML content copied to clipboard', 'success');
-        } catch (error) {
-            console.error('Failed to copy XML:', error);
-            this.showToast('Failed to copy XML content', 'error');
-        }
-    }
-
-    /**
      * Format XML for display with proper indentation
      */
     formatXML(xml) {
         try {
+            // Parse and serialize to normalize the XML
             const parser = new DOMParser();
             const xmlDoc = parser.parseFromString(xml, 'text/xml');
+            
+            // Check for parsing errors
+            const errorNode = xmlDoc.querySelector('parsererror');
+            if (errorNode) {
+                console.warn('XML parsing error, using raw content');
+                return this.indentXML(xml);
+            }
+            
             const serializer = new XMLSerializer();
-            const formatted = serializer.serializeToString(xmlDoc);
+            const normalized = serializer.serializeToString(xmlDoc);
             
-            // Basic indentation formatting
-            let indent = 0;
-            const lines = formatted.split('>');
-            let result = '';
-            
-            lines.forEach((line, index) => {
-                if (line.includes('</')) {
-                    indent--;
-                }
-                
-                if (index > 0) {
-                    result += '  '.repeat(Math.max(0, indent)) + line;
-                    if (index < lines.length - 1) {
-                        result += '>';
-                    }
-                } else {
-                    result += line + '>';
-                }
-                
-                if (line.includes('<') && !line.includes('</') && !line.includes('/>')) {
-                    indent++;
-                }
-                
-                if (index < lines.length - 1) {
-                    result += '\n';
-                }
-            });
-            
-            return result;
+            return this.indentXML(normalized);
         } catch (error) {
             console.warn('Failed to format XML:', error);
-            return xml; // Return original if formatting fails
+            return this.indentXML(xml); // Fallback to simple indentation
         }
+    }
+
+    /**
+     * Simple XML indentation without full parsing
+     */
+    indentXML(xml) {
+        let formatted = '';
+        let indent = 0;
+        const tab = '  '; // 2 spaces
+        
+        // Split by > and < to process tags
+        xml.split(/>\s*</).forEach((node, index) => {
+            if (index === 0) {
+                // First element
+                if (node.startsWith('<')) {
+                    formatted += node + '>';
+                } else {
+                    formatted += '<' + node + '>';
+                }
+            } else if (index === xml.split(/>\s*</).length - 1) {
+                // Last element
+                formatted += '\n' + tab.repeat(Math.max(0, indent)) + '<' + node;
+            } else {
+                // Middle elements
+                if (node.startsWith('/')) {
+                    // Closing tag
+                    indent--;
+                    formatted += '\n' + tab.repeat(Math.max(0, indent)) + '<' + node + '>';
+                } else if (node.endsWith('/')) {
+                    // Self-closing tag
+                    formatted += '\n' + tab.repeat(indent) + '<' + node + '>';
+                } else {
+                    // Opening tag
+                    formatted += '\n' + tab.repeat(indent) + '<' + node + '>';
+                    indent++;
+                }
+            }
+        });
+        
+        return formatted;
     }
 
     /**
