@@ -79,8 +79,7 @@
       "category": "Medical"
     },
     "dmg": {
-      "title": "CCD Viewer ${version}",
-      "format": "UDZO"
+      "title": "CCD Viewer ${version}"
     },
     "nsis": {
       "oneClick": false,
