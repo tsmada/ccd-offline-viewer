@@ -1,0 +1,218 @@
+name: Manual Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g., v1.0.1)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac-intel
+            arch: x64
+            build_script: 'npm run dist:mac'
+            artifact_pattern: '*.dmg'
+            artifact_name: 'CCD-Viewer-${{ inputs.version }}-mac-intel.dmg'
+            
+          - os: macos-latest  
+            platform: mac-arm64
+            arch: arm64
+            build_script: 'npm run dist:mac:arm64'
+            artifact_pattern: '*.dmg'
+            artifact_name: 'CCD-Viewer-${{ inputs.version }}-mac-arm64.dmg'
+            
+          - os: windows-latest
+            platform: windows
+            arch: x64
+            build_script: 'npm run dist:win'
+            artifact_pattern: '*.exe'
+            artifact_name: 'CCD-Viewer-${{ inputs.version }}-windows-x64.exe'
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Update package version
+        shell: bash
+        run: |
+          VERSION="${{ inputs.version }}"
+          VERSION=${VERSION#v}  # Remove 'v' prefix
+          npm version --no-git-tag-version "$VERSION"
+
+      - name: Build for ${{ matrix.platform }}
+        run: ${{ matrix.build_script }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find and rename artifact
+        shell: bash
+        run: |
+          cd dist
+          ARTIFACT=$(find . -name "${{ matrix.artifact_pattern }}" | head -1)
+          if [ -n "$ARTIFACT" ]; then
+            echo "Found artifact: $ARTIFACT"
+            mv "$ARTIFACT" "${{ matrix.artifact_name }}"
+            echo "ARTIFACT_PATH=dist/${{ matrix.artifact_name }}" >> $GITHUB_ENV
+            
+            # Get file size for release notes
+            SIZE=$(du -h "${{ matrix.artifact_name }}" | cut -f1)
+            echo "ARTIFACT_SIZE=$SIZE" >> $GITHUB_ENV
+          else
+            echo "No artifact found matching pattern: ${{ matrix.artifact_pattern }}"
+            exit 1
+          fi
+
+      - name: Verify artifact
+        shell: bash
+        run: |
+          if [ -f "${{ env.ARTIFACT_PATH }}" ]; then
+            echo "✅ Artifact verified: ${{ env.ARTIFACT_PATH }}"
+            echo "📦 Size: ${{ env.ARTIFACT_SIZE }}"
+            ls -la "${{ env.ARTIFACT_PATH }}"
+          else
+            echo "❌ Artifact not found: ${{ env.ARTIFACT_PATH }}"
+            exit 1
+          fi
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.platform }}-build
+          path: ${{ env.ARTIFACT_PATH }}
+          retention-days: 90
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-artifacts
+
+      - name: Prepare release files
+        run: |
+          echo "📦 Preparing release files..."
+          find release-artifacts -name "*.dmg" -o -name "*.exe" | while read file; do
+            echo "Found: $file"
+            cp "$file" ./
+          done
+          
+          echo "🎯 Final release files:"
+          ls -la *.dmg *.exe || echo "No release files found!"
+
+      - name: Generate release notes
+        run: |
+          cat > release-notes.md << 'EOF'
+          ## 🏥 CCD Viewer ${{ inputs.version }}
+
+          A modern, HIPAA-compliant Continuity of Care Document viewer built with pure Electron and vanilla JavaScript.
+
+          ### 📥 Downloads
+
+          Choose the appropriate version for your system:
+
+          - **macOS (Intel)** - For Intel-based Macs: `CCD-Viewer-${{ inputs.version }}-mac-intel.dmg`
+          - **macOS (Apple Silicon)** - For M1/M2 Macs: `CCD-Viewer-${{ inputs.version }}-mac-arm64.dmg`  
+          - **Windows (x64)** - For Windows 10/11: `CCD-Viewer-${{ inputs.version }}-windows-x64.exe`
+
+          ### 📸 Screenshots
+
+          | Main Interface | Document Viewer |
+          |---|---|
+          | ![Main Interface](https://raw.githubusercontent.com/tsmada/ccd-offline-viewer/main/images/main.png) | ![Document Details](https://raw.githubusercontent.com/tsmada/ccd-offline-viewer/main/images/details.png) |
+
+          ### ✨ Key Features
+
+          - 🏥 **Complete CCD/CDA Support** - Parse and view medical documents with full fidelity
+          - 📊 **Rich Document Viewer** - Patient info, allergies, medications, problems, procedures, encounters, vitals, labs
+          - 📤 **Multiple Export Formats** - PDF, JSON, and CSV export with native file dialogs
+          - 🎨 **6 Stunning Themes** - Classic Winamp, Healthcare Blue, Dark Mode, High Contrast, Vaporwave, Matrix
+          - 🖱️ **Intuitive Interface** - Beautiful drag & drop file loading experience
+          - 🔒 **100% Local Processing** - HIPAA-compliant, no network requests, all data stays on your device
+          - ⚡ **Fast & Lightweight** - Pure vanilla JavaScript, no framework overhead
+          - ⌨️ **Keyboard Shortcuts** - ⌘O (Open), ⌘S (Save as PDF), ⌘T (Cycle Themes)
+
+          ### 🚀 Installation Instructions
+
+          #### macOS
+          1. Download the appropriate DMG file for your Mac (Intel or Apple Silicon)
+          2. Open the DMG file
+          3. Drag "CCD Viewer" to your Applications folder
+          4. Launch from Applications or Spotlight
+
+          #### Windows  
+          1. Download the `CCD-Viewer-${{ inputs.version }}-windows-x64.exe` file
+          2. Run the installer as Administrator if prompted
+          3. Follow the installation wizard
+          4. Launch from Start Menu or Desktop shortcut
+
+          ### 🔧 System Requirements
+
+          - **macOS**: 10.15 Catalina or later
+          - **Windows**: Windows 10 (version 1903) or Windows 11
+
+          ### 🛡️ Security & Privacy
+
+          - All CCD processing happens locally on your device
+          - No data is transmitted over the internet
+          - HIPAA-compliant design principles
+          - Secure Electron architecture with context isolation
+
+          ---
+
+          📝 **Need help?** Check out the [documentation](https://github.com/tsmada/ccd-offline-viewer/blob/main/README.md) or [open an issue](https://github.com/tsmada/ccd-offline-viewer/issues).
+
+          🎉 **Built with** pure Electron, vanilla JavaScript, and lots of ❤️
+          EOF
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ inputs.version }}
+          name: CCD Viewer ${{ inputs.version }}
+          body_path: release-notes.md
+          draft: false
+          prerelease: ${{ inputs.prerelease }}
+          files: |
+            *.dmg
+            *.exe
+          fail_on_unmatched_files: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Release Summary
+        run: |
+          echo "🎉 Release ${{ inputs.version }} created successfully!"
+          echo "📦 Artifacts uploaded:"
+          ls -la *.dmg *.exe || echo "⚠️  No artifacts found"

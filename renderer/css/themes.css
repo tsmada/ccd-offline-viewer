@@ -1,0 +1,247 @@
+/* Theme Variables */
+
+/* Classic Winamp Theme */
+.theme-winamp {
+    --color-primary: #00ff00;
+    --color-secondary: #ffff00;
+    --color-error: #ff0000;
+    --color-success: #00ff00;
+    --color-background: #000000;
+    --color-surface: #202020;
+    --color-border: #404040;
+    --color-border-light: #606060;
+    --color-border-dark: #101010;
+    --color-button: #303030;
+    --color-button-hover: #404040;
+    --color-text: #ffffff;
+    --color-text-secondary: #cccccc;
+    
+    /* RGB values for opacity calculations */
+    --color-primary-rgb: 0, 255, 0;
+    --color-error-rgb: 255, 0, 0;
+}
+
+/* Healthcare Blue Theme */
+.theme-healthcare {
+    --color-primary: #3b82f6;
+    --color-secondary: #06b6d4;
+    --color-error: #ef4444;
+    --color-success: #10b981;
+    --color-background: #f8fafc;
+    --color-surface: #ffffff;
+    --color-border: #e2e8f0;
+    --color-border-light: #f1f5f9;
+    --color-border-dark: #cbd5e1;
+    --color-button: #f8fafc;
+    --color-button-hover: #f1f5f9;
+    --color-text: #1e293b;
+    --color-text-secondary: #64748b;
+    
+    --color-primary-rgb: 59, 130, 246;
+    --color-error-rgb: 239, 68, 68;
+}
+
+/* Dark Mode Theme */
+.theme-dark {
+    --color-primary: #a78bfa;
+    --color-secondary: #06b6d4;
+    --color-error: #f87171;
+    --color-success: #4ade80;
+    --color-background: #0f172a;
+    --color-surface: #1e293b;
+    --color-border: #334155;
+    --color-border-light: #475569;
+    --color-border-dark: #1e293b;
+    --color-button: #374151;
+    --color-button-hover: #4b5563;
+    --color-text: #f8fafc;
+    --color-text-secondary: #cbd5e1;
+    
+    --color-primary-rgb: 167, 139, 250;
+    --color-error-rgb: 248, 113, 113;
+}
+
+/* High Contrast Theme */
+.theme-contrast {
+    --color-primary: #ffffff;
+    --color-secondary: #ffff00;
+    --color-error: #ff0000;
+    --color-success: #00ff00;
+    --color-background: #000000;
+    --color-surface: #111111;
+    --color-border: #ffffff;
+    --color-border-light: #cccccc;
+    --color-border-dark: #555555;
+    --color-button: #333333;
+    --color-button-hover: #555555;
+    --color-text: #ffffff;
+    --color-text-secondary: #cccccc;
+    
+    --color-primary-rgb: 255, 255, 255;
+    --color-error-rgb: 255, 0, 0;
+}
+
+/* Vaporwave Theme */
+.theme-vapor {
+    --color-primary: #ff006e;
+    --color-secondary: #00f5ff;
+    --color-error: #ff073a;
+    --color-success: #39ff14;
+    --color-background: #1a0033;
+    --color-surface: #2d0066;
+    --color-border: #4d0099;
+    --color-border-light: #6600cc;
+    --color-border-dark: #1a0033;
+    --color-button: #330066;
+    --color-button-hover: #4d0099;
+    --color-text: #ff69b4;
+    --color-text-secondary: #da70d6;
+    
+    --color-primary-rgb: 255, 0, 110;
+    --color-error-rgb: 255, 7, 58;
+}
+
+/* Matrix Theme */
+.theme-matrix {
+    --color-primary: #00ff41;
+    --color-secondary: #008f11;
+    --color-error: #ff0000;
+    --color-success: #00ff41;
+    --color-background: #000000;
+    --color-surface: #001100;
+    --color-border: #003300;
+    --color-border-light: #004400;
+    --color-border-dark: #000000;
+    --color-button: #002200;
+    --color-button-hover: #003300;
+    --color-text: #00ff41;
+    --color-text-secondary: #008f11;
+    
+    --color-primary-rgb: 0, 255, 65;
+    --color-error-rgb: 255, 0, 0;
+}
+
+/* Theme-specific effects */
+.theme-winamp .bg-effects::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 255, 0, 0.03) 2px,
+        rgba(0, 255, 0, 0.03) 4px
+    );
+    pointer-events: none;
+}
+
+.theme-vapor .bg-effects::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: 
+        radial-gradient(circle at 25% 25%, rgba(255, 0, 110, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 75% 75%, rgba(0, 245, 255, 0.1) 0%, transparent 50%);
+    pointer-events: none;
+}
+
+.theme-matrix .bg-effects::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 1px,
+        rgba(0, 255, 65, 0.02) 1px,
+        rgba(0, 255, 65, 0.02) 2px
+    );
+    pointer-events: none;
+}
+
+/* Matrix rain effect */
+.theme-matrix .matrix-rain {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.theme-matrix .matrix-rain::before {
+    content: '010110100101101001011010010110100101101001011010010110100101101001011010010110100101101001011010';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 200%;
+    color: rgba(0, 255, 65, 0.1);
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 14px;
+    word-wrap: break-word;
+    animation: matrixFall 20s linear infinite;
+}
+
+@keyframes matrixFall {
+    0% {
+        transform: translateY(-100%);
+    }
+    100% {
+        transform: translateY(100%);
+    }
+}
+
+/* Scanlines effect */
+.scanlines::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.1) 2px,
+        rgba(0, 0, 0, 0.1) 4px
+    );
+    z-index: 1000;
+}
+
+/* Noise effect */
+.noise::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    opacity: 0.02;
+    background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256"><filter id="noiseFilter"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="4" result="noise" seed="1"/><feColorMatrix in="noise" type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(%23noiseFilter)"/></svg>');
+    z-index: 999;
+}
+
+/* Theme transition animations */
+body {
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+.winamp-panel,
+.winamp-button {
+    transition: all 0.3s ease;
+}
+
+/* Glow intensity per theme */
+.theme-winamp .glow { filter: drop-shadow(0 0 6px var(--color-primary)) drop-shadow(0 0 12px var(--color-primary)); }
+.theme-healthcare .glow { filter: drop-shadow(0 0 4px var(--color-primary)) drop-shadow(0 0 8px var(--color-primary)); }
+.theme-dark .glow { filter: drop-shadow(0 0 5px var(--color-primary)) drop-shadow(0 0 10px var(--color-primary)); }
+.theme-contrast .glow { filter: drop-shadow(0 0 3px var(--color-primary)) drop-shadow(0 0 6px var(--color-primary)); }
+.theme-vapor .glow { filter: drop-shadow(0 0 8px var(--color-primary)) drop-shadow(0 0 16px var(--color-primary)); }
+.theme-matrix .glow { filter: drop-shadow(0 0 6px var(--color-primary)) drop-shadow(0 0 12px var(--color-primary)) drop-shadow(0 0 18px var(--color-primary)); }

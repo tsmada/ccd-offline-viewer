@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CCD Viewer - Modern Healthcare Document Viewer</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/themes.css">
+    <link rel="stylesheet" href="css/animations.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="theme-winamp font-mono antialiased">
+    <div id="app" class="min-h-screen bg-background text-primary font-mono overflow-hidden">
+        <!-- Background effects -->
+        <div class="fixed inset-0 pointer-events-none bg-effects"></div>
+
+        <!-- Main container -->
+        <div class="relative z-10 h-screen flex flex-col">
+            <!-- Header -->
+            <div id="header" class="winamp-panel border-b-2 border-primary slide-down">
+                <div class="flex items-center justify-between p-2">
+                    <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-5 h-5 text-primary glow-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                            </svg>
+                            <span class="font-bebas text-xl text-primary glow-sm">CCD VIEWER</span>
+                        </div>
+                    </div>
+                    <div class="flex-1 mx-8">
+                        <div class="bg-black/50 rounded px-4 py-2 font-mono text-sm">
+                            <div id="status" class="text-primary text-center">NO FILE LOADED</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="toggle-visualizer" class="winamp-button p-2 hover:bg-primary/20 transition-colors" title="Toggle Visualizer">
+                            <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M4 12h16M4 18h16M4 6h16"/>
+                            </svg>
+                        </button>
+                        <button id="settings-btn" class="winamp-button p-2 hover:bg-primary/20 transition-colors" title="Settings">
+                            <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"/>
+                            </svg>
+                        </button>
+                        <div class="w-px h-6 bg-border mx-1"></div>
+                        <button class="winamp-button p-2 hover:bg-primary/20 transition-colors">
+                            <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="m14 10 7-7M20 10h-6V4M3 21l7-7M4 14h6v6"/>
+                            </svg>
+                        </button>
+                        <button class="winamp-button p-2 hover:bg-primary/20 transition-colors">
+                            <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 3h6v6M21 3l-7 7M3 21l7-7M9 21H3v-6"/>
+                            </svg>
+                        </button>
+                        <button id="close-btn" class="winamp-button p-2 hover:bg-error/20 transition-colors">
+                            <svg class="w-4 h-4 text-error" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 6L6 18M6 6l12 12"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main content area -->
+            <div class="flex-1 overflow-hidden">
+                <!-- Empty state -->
+                <div id="empty-state" class="h-full fade-in">
+                    <div class="h-full flex items-center justify-center p-8">
+                        <div class="max-w-4xl w-full">
+                            <!-- Hero section -->
+                            <div class="text-center mb-12 slide-up">
+                                <div class="inline-block mb-6">
+                                    <div class="relative">
+                                        <div class="absolute inset-0 bg-gradient-to-r from-primary to-secondary blur-2xl opacity-30"></div>
+                                        <svg class="w-24 h-24 text-primary relative glow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <h1 class="text-6xl font-bebas text-primary glow mb-4">CCD VIEWER</h1>
+                                <p class="text-text-secondary text-lg">Modern Healthcare Document Viewer • HIPAA Compliant • Winamp Inspired</p>
+                            </div>
+
+                            <!-- Drop zone -->
+                            <div id="drop-zone" class="relative group cursor-pointer transition-all duration-300 winamp-panel rounded-2xl p-12 scale-up">
+                                <div class="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+                                    <div class="absolute inset-[-50%] bg-gradient-conic from-primary via-secondary to-primary opacity-20 animate-spin-slow"></div>
+                                </div>
+                                <div class="relative">
+                                    <div class="flex justify-center mb-8">
+                                        <div class="grid grid-cols-3 gap-4">
+                                            <div>
+                                                <svg class="w-12 h-12 text-primary/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/>
+                                                    <path d="M14 2v4a2 2 0 0 0 2 2h4"/>
+                                                    <path d="M10 9H8M16 13H8M16 17H8"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <svg class="w-12 h-12 text-error/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <svg class="w-12 h-12 text-success/60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="text-center">
+                                        <h2 class="text-3xl font-bebas text-primary mb-2">DRAG & DROP YOUR CCD</h2>
+                                        <p class="text-text-secondary mb-6">or click to browse • Supports .xml, .ccd, .cda files</p>
+                                        <div class="flex items-center justify-center gap-4">
+                                            <button id="browse-files" class="winamp-button px-6 py-3 text-primary hover:text-secondary transition-colors flex items-center gap-2">
+                                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M12 3v12M17 8l-5-5-5 5M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                                </svg>
+                                                <span class="font-mono">Browse Files</span>
+                                            </button>
+                                            <div class="text-text-secondary">or</div>
+                                            <button id="load-sample" class="winamp-button px-6 py-3 text-secondary hover:text-primary transition-colors flex items-center gap-2">
+                                                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                    <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
+                                                    <path d="M20 2v4M22 4h-4"/>
+                                                    <circle cx="4" cy="20" r="2"/>
+                                                </svg>
+                                                <span class="font-mono">Load Sample</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Features -->
+                            <div class="grid grid-cols-3 gap-6 mt-12 fade-in-delayed">
+                                <div class="text-center">
+                                    <svg class="w-8 h-8 text-primary mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>
+                                    </svg>
+                                    <h3 class="font-bebas text-lg text-primary mb-1">FAST PARSING</h3>
+                                    <p class="text-text-secondary text-sm">Native JavaScript powered</p>
+                                </div>
+                                <div class="text-center">
+                                    <svg class="w-8 h-8 text-secondary mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
+                                        <path d="M20 2v4M22 4h-4"/>
+                                        <circle cx="4" cy="20" r="2"/>
+                                    </svg>
+                                    <h3 class="font-bebas text-lg text-secondary mb-1">BEAUTIFUL UI</h3>
+                                    <p class="text-text-secondary text-sm">6 stunning themes</p>
+                                </div>
+                                <div class="text-center">
+                                    <svg class="w-8 h-8 text-error mx-auto mb-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"/>
+                                    </svg>
+                                    <h3 class="font-bebas text-lg text-error mb-1">HIPAA COMPLIANT</h3>
+                                    <p class="text-text-secondary text-sm">100% local processing</p>
+                                </div>
+                            </div>
+
+                            <!-- Keyboard shortcuts -->
+                            <div class="flex justify-center gap-4 mt-12 text-sm fade-in-delayed">
+                                <kbd class="px-2 py-1 bg-surface border border-primary rounded text-primary">⌘O</kbd>
+                                <span class="text-text-secondary">Open</span>
+                                <kbd class="px-2 py-1 bg-surface border border-primary rounded text-primary">⌘S</kbd>
+                                <span class="text-text-secondary">Save</span>
+                                <kbd class="px-2 py-1 bg-surface border border-primary rounded text-primary">⌘T</kbd>
+                                <span class="text-text-secondary">Theme</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Document view -->
+                <div id="document-view" class="h-full hidden">
+                    <div class="h-full flex gap-4 p-4">
+                        <!-- Main content -->
+                        <div class="flex-1 flex flex-col gap-4">
+                            <div id="document-tabs" class="winamp-panel rounded-lg p-4">
+                                <h2 class="font-bebas text-xl text-primary mb-4">DOCUMENT SECTIONS</h2>
+                                <div id="tab-buttons" class="flex gap-2 mb-4 flex-wrap"></div>
+                                <div id="tab-content" class="min-h-[400px]"></div>
+                            </div>
+                        </div>
+
+                        <!-- Side panels -->
+                        <div class="flex flex-col gap-4 w-80">
+                            <!-- Theme selector -->
+                            <div id="theme-panel" class="winamp-panel rounded-lg p-4">
+                                <h3 class="font-bebas text-lg text-primary mb-4">THEME</h3>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button class="theme-btn winamp-button p-3 text-sm" data-theme="winamp">Classic</button>
+                                    <button class="theme-btn winamp-button p-3 text-sm" data-theme="healthcare">Healthcare</button>
+                                    <button class="theme-btn winamp-button p-3 text-sm" data-theme="dark">Dark</button>
+                                    <button class="theme-btn winamp-button p-3 text-sm" data-theme="contrast">Contrast</button>
+                                    <button class="theme-btn winamp-button p-3 text-sm" data-theme="vapor">Vapor</button>
+                                    <button class="theme-btn winamp-button p-3 text-sm" data-theme="matrix">Matrix</button>
+                                </div>
+                            </div>
+
+                            <!-- Export panel -->
+                            <div id="export-panel" class="winamp-panel rounded-lg p-4">
+                                <h3 class="font-bebas text-lg text-primary mb-4">EXPORT</h3>
+                                <div class="flex flex-col gap-2">
+                                    <button id="export-pdf" class="winamp-button p-3 text-sm">Export as PDF</button>
+                                    <button id="export-json" class="winamp-button p-3 text-sm">Export as JSON</button>
+                                    <button id="export-csv" class="winamp-button p-3 text-sm">Export as CSV</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading screen -->
+                <div id="loading-screen" class="h-full hidden">
+                    <div class="h-full flex items-center justify-center">
+                        <div class="text-center">
+                            <div class="loading-spinner mb-4"></div>
+                            <h2 class="font-bebas text-2xl text-primary mb-2">PARSING DOCUMENT</h2>
+                            <p class="text-text-secondary">Processing your CCD/CDA file...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast notifications -->
+        <div id="toast-container" class="fixed bottom-4 right-4 z-50"></div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" id="file-input" accept=".xml,.ccd,.cda" class="hidden">
+
+    <!-- Scripts -->
+    <script src="js/ccd-parser.js"></script>
+    <script src="js/store.js"></script>
+    <script src="js/themes.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
