@@ -263,7 +263,22 @@ class Store {
             encounters: doc.encounters?.length || 0,
             immunizations: doc.immunizations?.length || 0,
             labResults: doc.labResults?.length || 0,
-            vitalSigns: doc.vitalSigns?.length || 0
+            vitalSigns: doc.vitalSigns?.length || 0,
+            notes: doc.notes?.length || 0,
+            advanceDirectives: doc.advanceDirectives?.length || 0,
+            assessment: doc.assessment?.length || 0,
+            chiefComplaint: doc.chiefComplaint?.length || 0,
+            familyHistory: doc.familyHistory?.length || 0,
+            goals: doc.goals?.length || 0,
+            healthConcerns: doc.healthConcerns?.length || 0,
+            instructions: doc.instructions?.length || 0,
+            medicalEquipment: doc.medicalEquipment?.length || 0,
+            mentalStatus: doc.mentalStatus?.length || 0,
+            nutrition: doc.nutrition?.length || 0,
+            payers: doc.payers?.length || 0,
+            physicalExam: doc.physicalExam?.length || 0,
+            reasonForVisit: doc.reasonForVisit?.length || 0,
+            reviewOfSystems: doc.reviewOfSystems?.length || 0
         };
     }
 

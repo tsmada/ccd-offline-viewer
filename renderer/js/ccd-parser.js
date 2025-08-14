@@ -41,6 +41,21 @@ class CCDParser {
                 socialHistory: this.parseSocialHistory(document),
                 functionalStatus: this.parseFunctionalStatus(document),
                 planOfCare: this.parsePlanOfCare(document),
+                notes: this.parseNotes(document),
+                advanceDirectives: this.parseAdvanceDirectives(document),
+                assessment: this.parseAssessment(document),
+                chiefComplaint: this.parseChiefComplaint(document),
+                familyHistory: this.parseFamilyHistory(document),
+                goals: this.parseGoals(document),
+                healthConcerns: this.parseHealthConcerns(document),
+                instructions: this.parseInstructions(document),
+                medicalEquipment: this.parseMedicalEquipment(document),
+                mentalStatus: this.parseMentalStatus(document),
+                nutrition: this.parseNutrition(document),
+                payers: this.parsePayers(document),
+                physicalExam: this.parsePhysicalExam(document),
+                reasonForVisit: this.parseReasonForVisit(document),
+                reviewOfSystems: this.parseReviewOfSystems(document),
                 raw: document
             };
         } catch (error) {
@@ -389,6 +404,407 @@ class CCDParser {
         }).filter(Boolean);
     }
 
+    parseNotes(document) {
+        // Try multiple template IDs for notes sections
+        const notesTemplateIds = [
+            '2.16.840.1.113883.10.20.22.2.65', // Notes Section
+            '2.16.840.1.113883.10.20.22.2.12', // Progress Note
+            '2.16.840.1.113883.10.20.22.2.56', // Clinical Notes
+        ];
+        
+        let section = null;
+        for (const templateId of notesTemplateIds) {
+            section = this.findSection(document, templateId);
+            if (section) break;
+        }
+        
+        // Also check for sections with LOINC codes for notes
+        if (!section) {
+            section = this.findSectionByCode(document, ['11488-4', '34109-9', '11506-3']);
+        }
+        
+        if (!section) return [];
+        
+        const notes = [];
+        
+        // Extract notes from text element
+        if (section.text) {
+            const text = this.extractValue(section.text);
+            if (text) {
+                notes.push({
+                    id: 'section-text',
+                    type: 'Section Text',
+                    content: text,
+                    date: this.extractValue(section.effectiveTime, '@_value'),
+                    author: 'Unknown'
+                });
+            }
+        }
+        
+        // Extract notes from entries
+        if (section.entry) {
+            const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+            
+            entries.forEach(entry => {
+                const act = entry.act || entry.observation || entry.encounter;
+                if (!act) return;
+                
+                const note = {
+                    id: this.extractValue(act.id, '@_root'),
+                    type: this.extractValue(act.code, '@_displayName') || 'Clinical Note',
+                    content: this.extractValue(act.text),
+                    date: this.extractValue(act.effectiveTime, '@_value'),
+                    author: this.extractNoteAuthor(act.author),
+                    status: this.extractValue(act.statusCode, '@_code')
+                };
+                
+                // Check for additional note content in entryRelationship
+                if (act.entryRelationship) {
+                    const relationships = Array.isArray(act.entryRelationship) ? 
+                        act.entryRelationship : [act.entryRelationship];
+                    
+                    relationships.forEach(rel => {
+                        const obs = rel.observation || rel.act;
+                        if (obs?.text) {
+                            const additionalText = this.extractValue(obs.text);
+                            if (additionalText) {
+                                note.content = note.content ? 
+                                    `${note.content}\n\n${additionalText}` : additionalText;
+                            }
+                        }
+                    });
+                }
+                
+                if (note.content) {
+                    notes.push(note);
+                }
+            });
+        }
+        
+        return notes;
+    }
+
+    parseAdvanceDirectives(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.21.1');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const observation = entry.observation;
+            if (!observation) return null;
+
+            return {
+                id: this.extractValue(observation.id, '@_root'),
+                type: this.extractValue(observation.code, '@_displayName'),
+                status: this.extractValue(observation.statusCode, '@_code'),
+                effectiveDate: this.extractValue(observation.effectiveTime, '@_value'),
+                custodian: this.extractCustodian(observation.participant),
+                description: this.extractValue(observation.text)
+            };
+        }).filter(Boolean);
+    }
+
+    parseAssessment(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.8');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const act = entry.act;
+            if (!act) return null;
+
+            return {
+                id: this.extractValue(act.id, '@_root'),
+                assessment: this.extractValue(act.code, '@_displayName'),
+                date: this.extractValue(act.effectiveTime, '@_value'),
+                clinician: this.extractClinician(act.author),
+                findings: this.extractValue(act.text),
+                status: this.extractValue(act.statusCode, '@_code')
+            };
+        }).filter(Boolean);
+    }
+
+    parseChiefComplaint(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.13');
+        if (!section) return [];
+
+        // Chief complaint is often in section text rather than entries
+        const text = this.extractValue(section.text);
+        if (!text) return [];
+
+        return [{
+            id: 'chief-complaint',
+            complaint: text,
+            date: this.extractValue(section.effectiveTime, '@_value')
+        }];
+    }
+
+    parseFamilyHistory(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.15');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const organizer = entry.organizer;
+            if (!organizer) return null;
+
+            const subject = organizer.subject?.relatedSubject;
+            const observations = this.extractFamilyObservations(organizer.component);
+
+            return {
+                id: this.extractValue(organizer.id, '@_root'),
+                relationship: this.extractValue(subject?.code, '@_displayName'),
+                relativeGender: this.extractValue(subject?.subject?.administrativeGenderCode, '@_displayName'),
+                conditions: observations,
+                status: this.extractValue(organizer.statusCode, '@_code')
+            };
+        }).filter(Boolean);
+    }
+
+    parseGoals(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.60');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const observation = entry.observation;
+            if (!observation) return null;
+
+            return {
+                id: this.extractValue(observation.id, '@_root'),
+                goal: this.extractValue(observation.text),
+                priority: this.extractValue(observation.priorityCode, '@_displayName'),
+                targetDate: this.extractValue(observation.effectiveTime?.high, '@_value'),
+                status: this.extractValue(observation.statusCode, '@_code'),
+                progress: this.extractGoalProgress(observation.entryRelationship)
+            };
+        }).filter(Boolean);
+    }
+
+    parseHealthConcerns(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.58');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const act = entry.act;
+            if (!act) return null;
+
+            return {
+                id: this.extractValue(act.id, '@_root'),
+                concern: this.extractValue(act.text),
+                category: this.extractValue(act.code, '@_displayName'),
+                status: this.extractValue(act.statusCode, '@_code'),
+                date: this.extractValue(act.effectiveTime, '@_value'),
+                author: this.extractAuthor(act.author)
+            };
+        }).filter(Boolean);
+    }
+
+    parseInstructions(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.45');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const act = entry.act;
+            if (!act) return null;
+
+            return {
+                id: this.extractValue(act.id, '@_root'),
+                instruction: this.extractValue(act.text),
+                code: this.extractValue(act.code, '@_displayName'),
+                status: this.extractValue(act.statusCode, '@_code'),
+                date: this.extractValue(act.effectiveTime, '@_value')
+            };
+        }).filter(Boolean);
+    }
+
+    parseMedicalEquipment(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.23');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const supply = entry.supply || entry.organizer?.component?.supply;
+            if (!supply) return null;
+
+            const device = supply.participant?.participantRole?.playingDevice;
+
+            return {
+                id: this.extractValue(supply.id, '@_root'),
+                deviceName: this.extractValue(device?.code, '@_displayName'),
+                manufacturer: this.extractValue(device?.manufacturerModelName),
+                serialNumber: this.extractValue(device?.softwareName),
+                implantDate: this.extractValue(supply.effectiveTime, '@_value'),
+                status: this.extractValue(supply.statusCode, '@_code')
+            };
+        }).filter(Boolean);
+    }
+
+    parseMentalStatus(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.56');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const observation = entry.observation;
+            if (!observation) return null;
+
+            return {
+                id: this.extractValue(observation.id, '@_root'),
+                assessment: this.extractValue(observation.code, '@_displayName'),
+                result: this.extractValue(observation.value, '@_displayName'),
+                date: this.extractValue(observation.effectiveTime, '@_value'),
+                examiner: this.extractPerformer(observation.performer),
+                status: this.extractValue(observation.statusCode, '@_code')
+            };
+        }).filter(Boolean);
+    }
+
+    parseNutrition(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.57');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const observation = entry.observation;
+            if (!observation) return null;
+
+            return {
+                id: this.extractValue(observation.id, '@_root'),
+                dietType: this.extractValue(observation.code, '@_displayName'),
+                restrictions: this.extractValue(observation.text),
+                calories: this.extractNutritionalValue(observation.entryRelationship, 'calories'),
+                protein: this.extractNutritionalValue(observation.entryRelationship, 'protein'),
+                date: this.extractValue(observation.effectiveTime, '@_value'),
+                status: this.extractValue(observation.statusCode, '@_code')
+            };
+        }).filter(Boolean);
+    }
+
+    parsePayers(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.18');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const act = entry.act;
+            if (!act) return null;
+
+            const coverage = act.entryRelationship?.act;
+            const payer = coverage?.performer?.assignedEntity?.representedOrganization;
+
+            return {
+                id: this.extractValue(act.id, '@_root'),
+                payerName: this.extractValue(payer?.name),
+                policyNumber: this.extractValue(coverage?.id, '@_extension'),
+                groupNumber: this.extractValue(coverage?.participant?.participantRole?.id, '@_extension'),
+                policyType: this.extractValue(coverage?.code, '@_displayName'),
+                effectiveDate: this.extractValue(coverage?.effectiveTime?.low, '@_value'),
+                expirationDate: this.extractValue(coverage?.effectiveTime?.high, '@_value')
+            };
+        }).filter(Boolean);
+    }
+
+    parsePhysicalExam(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.2.10');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const observation = entry.observation;
+            if (!observation) return null;
+
+            return {
+                id: this.extractValue(observation.id, '@_root'),
+                bodySystem: this.extractValue(observation.code, '@_displayName'),
+                findings: this.extractValue(observation.text),
+                abnormal: this.extractValue(observation.interpretationCode, '@_code') === 'A',
+                date: this.extractValue(observation.effectiveTime, '@_value'),
+                examiner: this.extractPerformer(observation.performer)
+            };
+        }).filter(Boolean);
+    }
+
+    parseReasonForVisit(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.12');
+        if (!section) return [];
+
+        const text = this.extractValue(section.text);
+        if (!text) return [];
+
+        return [{
+            id: 'reason-for-visit',
+            reason: text,
+            date: this.extractValue(section.effectiveTime, '@_value')
+        }];
+    }
+
+    parseReviewOfSystems(document) {
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.44');
+        if (!section?.entry) return [];
+
+        const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        
+        return entries.map(entry => {
+            const observation = entry.observation;
+            if (!observation) return null;
+
+            return {
+                id: this.extractValue(observation.id, '@_root'),
+                system: this.extractValue(observation.code, '@_displayName'),
+                findings: this.extractValue(observation.value, '@_displayName') || this.extractValue(observation.text),
+                status: this.extractValue(observation.statusCode, '@_code'),
+                date: this.extractValue(observation.effectiveTime, '@_value')
+            };
+        }).filter(Boolean);
+    }
+    
+    findSectionByCode(document, codes) {
+        const component = document.component?.structuredBody?.component;
+        if (!component) return null;
+
+        const components = Array.isArray(component) ? component : [component];
+        
+        return components.find(comp => {
+            const section = comp.section;
+            if (!section?.code) return false;
+            
+            const sectionCode = this.extractValue(section.code, '@_code');
+            return codes.includes(sectionCode);
+        })?.section;
+    }
+    
+    extractNoteAuthor(author) {
+        if (!author) return 'Unknown';
+        
+        const authorArray = Array.isArray(author) ? author[0] : author;
+        const assignedAuthor = authorArray?.assignedAuthor;
+        
+        if (!assignedAuthor) return 'Unknown';
+        
+        const name = this.parseName(assignedAuthor.assignedPerson?.name);
+        const org = this.extractValue(assignedAuthor.representedOrganization?.name);
+        
+        if (name?.full) {
+            return org ? `${name.full} (${org})` : name.full;
+        }
+        
+        return org || 'Unknown';
+    }
+
     // Helper methods
     findSection(document, templateId) {
         const component = document.component?.structuredBody?.component;
@@ -548,6 +964,100 @@ class CCDParser {
     extractManufacturer(material) {
         // Implementation for extracting manufacturer
         return null;
+    }
+
+    extractCustodian(participant) {
+        if (!participant) return 'Unknown';
+        
+        const participantArray = Array.isArray(participant) ? participant[0] : participant;
+        const role = participantArray?.participantRole;
+        
+        if (!role) return 'Unknown';
+        
+        const name = this.parseName(role.playingEntity?.name);
+        const org = this.extractValue(role.scopingEntity?.name);
+        
+        if (name?.full) {
+            return org ? `${name.full} (${org})` : name.full;
+        }
+        
+        return org || 'Unknown';
+    }
+
+    extractClinician(author) {
+        if (!author) return 'Unknown';
+        
+        const authorArray = Array.isArray(author) ? author[0] : author;
+        const assignedAuthor = authorArray?.assignedAuthor;
+        
+        if (!assignedAuthor) return 'Unknown';
+        
+        const name = this.parseName(assignedAuthor.assignedPerson?.name);
+        const org = this.extractValue(assignedAuthor.representedOrganization?.name);
+        
+        if (name?.full) {
+            return org ? `${name.full} (${org})` : name.full;
+        }
+        
+        return org || 'Unknown';
+    }
+
+    extractFamilyObservations(components) {
+        if (!components) return [];
+        
+        const compArray = Array.isArray(components) ? components : [components];
+        
+        return compArray.map(comp => {
+            const obs = comp?.observation;
+            if (!obs) return null;
+            
+            return {
+                condition: this.extractValue(obs.value, '@_displayName'),
+                onsetAge: this.extractValue(obs.entryRelationship?.observation?.value, '@_value'),
+                status: this.extractValue(obs.statusCode, '@_code')
+            };
+        }).filter(Boolean);
+    }
+
+    extractGoalProgress(entryRelationship) {
+        if (!entryRelationship) return 'Unknown';
+        
+        const relationArray = Array.isArray(entryRelationship) ? entryRelationship : [entryRelationship];
+        const progressEntry = relationArray.find(rel => rel.observation?.code?.['@_code'] === 'ASSERTION');
+        
+        return this.extractValue(progressEntry?.observation?.value, '@_displayName') || 'Unknown';
+    }
+
+    extractAuthor(author) {
+        if (!author) return 'Unknown';
+        
+        const authorArray = Array.isArray(author) ? author[0] : author;
+        const assignedAuthor = authorArray?.assignedAuthor;
+        
+        if (!assignedAuthor) return 'Unknown';
+        
+        const name = this.parseName(assignedAuthor.assignedPerson?.name);
+        const org = this.extractValue(assignedAuthor.representedOrganization?.name);
+        
+        if (name?.full) {
+            return org ? `${name.full} (${org})` : name.full;
+        }
+        
+        return org || 'Unknown';
+    }
+
+    extractNutritionalValue(entryRelationships, type) {
+        if (!entryRelationships) return 'Unknown';
+        
+        const relationArray = Array.isArray(entryRelationships) ? entryRelationships : [entryRelationships];
+        const nutritionEntry = relationArray.find(rel => 
+            rel.observation?.code?.['@_displayName']?.toLowerCase().includes(type.toLowerCase())
+        );
+        
+        const value = this.extractValue(nutritionEntry?.observation?.value, '@_value');
+        const unit = this.extractValue(nutritionEntry?.observation?.value, '@_unit');
+        
+        return value ? `${value} ${unit || ''}`.trim() : 'Unknown';
     }
 }
 

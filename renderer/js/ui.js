@@ -18,6 +18,21 @@ class UIManager {
             { id: 'socialHistory', label: 'Social History', icon: '🚭' },
             { id: 'functionalStatus', label: 'Functional Status', icon: '♿' },
             { id: 'planOfCare', label: 'Plan of Care', icon: '📝' },
+            { id: 'notes', label: 'Notes', icon: '📑' },
+            { id: 'advanceDirectives', label: 'Advance Directives', icon: '📋' },
+            { id: 'assessment', label: 'Assessment', icon: '🩺' },
+            { id: 'chiefComplaint', label: 'Chief Complaint', icon: '💬' },
+            { id: 'familyHistory', label: 'Family History', icon: '👨‍👩‍👧‍👦' },
+            { id: 'goals', label: 'Goals', icon: '🎯' },
+            { id: 'healthConcerns', label: 'Health Concerns', icon: '⚠️' },
+            { id: 'instructions', label: 'Instructions', icon: '📋' },
+            { id: 'medicalEquipment', label: 'Medical Equipment', icon: '🔧' },
+            { id: 'mentalStatus', label: 'Mental Status', icon: '🧠' },
+            { id: 'nutrition', label: 'Nutrition', icon: '🥗' },
+            { id: 'payers', label: 'Insurance', icon: '💳' },
+            { id: 'physicalExam', label: 'Physical Exam', icon: '🩺' },
+            { id: 'reasonForVisit', label: 'Reason for Visit', icon: '🏥' },
+            { id: 'reviewOfSystems', label: 'Review of Systems', icon: '📋' },
             { id: 'rawXML', label: 'Raw XML', icon: '📄' }
         ];
     }
@@ -447,6 +462,21 @@ class UIManager {
             case 'socialHistory': return document.socialHistory?.length > 0;
             case 'functionalStatus': return document.functionalStatus?.length > 0;
             case 'planOfCare': return document.planOfCare?.length > 0;
+            case 'notes': return document.notes?.length > 0;
+            case 'advanceDirectives': return document.advanceDirectives?.length > 0;
+            case 'assessment': return document.assessment?.length > 0;
+            case 'chiefComplaint': return document.chiefComplaint?.length > 0;
+            case 'familyHistory': return document.familyHistory?.length > 0;
+            case 'goals': return document.goals?.length > 0;
+            case 'healthConcerns': return document.healthConcerns?.length > 0;
+            case 'instructions': return document.instructions?.length > 0;
+            case 'medicalEquipment': return document.medicalEquipment?.length > 0;
+            case 'mentalStatus': return document.mentalStatus?.length > 0;
+            case 'nutrition': return document.nutrition?.length > 0;
+            case 'payers': return document.payers?.length > 0;
+            case 'physicalExam': return document.physicalExam?.length > 0;
+            case 'reasonForVisit': return document.reasonForVisit?.length > 0;
+            case 'reviewOfSystems': return document.reviewOfSystems?.length > 0;
             case 'rawXML': return !!window.store?.getState('rawXML');
             default: return false;
         }
@@ -529,6 +559,51 @@ class UIManager {
                 break;
             case 'planOfCare':
                 content = this.renderPlanOfCareContent(ccdDocument.planOfCare || []);
+                break;
+            case 'notes':
+                content = this.renderNotesContent(ccdDocument.notes || []);
+                break;
+            case 'advanceDirectives':
+                content = this.renderAdvanceDirectivesContent(ccdDocument.advanceDirectives || []);
+                break;
+            case 'assessment':
+                content = this.renderAssessmentContent(ccdDocument.assessment || []);
+                break;
+            case 'chiefComplaint':
+                content = this.renderChiefComplaintContent(ccdDocument.chiefComplaint || []);
+                break;
+            case 'familyHistory':
+                content = this.renderFamilyHistoryContent(ccdDocument.familyHistory || []);
+                break;
+            case 'goals':
+                content = this.renderGoalsContent(ccdDocument.goals || []);
+                break;
+            case 'healthConcerns':
+                content = this.renderHealthConcernsContent(ccdDocument.healthConcerns || []);
+                break;
+            case 'instructions':
+                content = this.renderInstructionsContent(ccdDocument.instructions || []);
+                break;
+            case 'medicalEquipment':
+                content = this.renderMedicalEquipmentContent(ccdDocument.medicalEquipment || []);
+                break;
+            case 'mentalStatus':
+                content = this.renderMentalStatusContent(ccdDocument.mentalStatus || []);
+                break;
+            case 'nutrition':
+                content = this.renderNutritionContent(ccdDocument.nutrition || []);
+                break;
+            case 'payers':
+                content = this.renderPayersContent(ccdDocument.payers || []);
+                break;
+            case 'physicalExam':
+                content = this.renderPhysicalExamContent(ccdDocument.physicalExam || []);
+                break;
+            case 'reasonForVisit':
+                content = this.renderReasonForVisitContent(ccdDocument.reasonForVisit || []);
+                break;
+            case 'reviewOfSystems':
+                content = this.renderReviewOfSystemsContent(ccdDocument.reviewOfSystems || []);
                 break;
             case 'rawXML':
                 content = this.renderRawXMLContent();
@@ -990,6 +1065,523 @@ class UIManager {
                             <th>Status</th>
                             <th>Planned Date</th>
                             <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render notes content
+     */
+    renderNotesContent(notes) {
+        if (notes.length === 0) {
+            return '<p class="text-text-secondary">No clinical notes recorded</p>';
+        }
+
+        return `
+            <div class="document-section">
+                <h3>Clinical Notes</h3>
+                ${notes.map(note => `
+                    <div class="note-entry mb-4 p-4 bg-black/20 rounded border border-primary/10">
+                        <div class="note-header mb-2">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <strong class="text-primary">${note.type || 'Clinical Note'}</strong>
+                                    ${note.date ? `<span class="text-text-secondary ml-2">• ${window.store.formatDate(note.date)}</span>` : ''}
+                                </div>
+                                ${note.status ? `<span class="text-xs px-2 py-1 bg-primary/20 rounded">${note.status}</span>` : ''}
+                            </div>
+                            ${note.author !== 'Unknown' ? `<div class="text-sm text-text-secondary mt-1">Author: ${note.author}</div>` : ''}
+                        </div>
+                        <div class="note-content">
+                            <pre class="whitespace-pre-wrap font-sans text-text-primary" style="font-family: inherit;">${this.escapeHtml(note.content || 'No content available')}</pre>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Render advance directives content
+     */
+    renderAdvanceDirectivesContent(directives) {
+        if (directives.length === 0) {
+            return '<p class="text-text-secondary">No advance directives recorded</p>';
+        }
+
+        const rows = directives.map(directive => `
+            <tr>
+                <td>${directive.type || 'Unknown'}</td>
+                <td>${directive.status || 'Not specified'}</td>
+                <td>${directive.effectiveDate ? window.store.formatDate(directive.effectiveDate) : 'Unknown'}</td>
+                <td>${directive.custodian || 'Unknown'}</td>
+                <td>${directive.description || 'No description'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Advance Directives</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Effective Date</th>
+                            <th>Custodian</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render assessment content
+     */
+    renderAssessmentContent(assessments) {
+        if (assessments.length === 0) {
+            return '<p class="text-text-secondary">No clinical assessments recorded</p>';
+        }
+
+        const rows = assessments.map(assessment => `
+            <tr>
+                <td>${assessment.assessment || 'Unknown'}</td>
+                <td>${assessment.date ? window.store.formatDate(assessment.date) : 'Unknown'}</td>
+                <td>${assessment.clinician || 'Unknown'}</td>
+                <td>${assessment.findings || 'No findings'}</td>
+                <td>${assessment.status || 'Not specified'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Clinical Assessment</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Assessment</th>
+                            <th>Date</th>
+                            <th>Clinician</th>
+                            <th>Findings</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render chief complaint content
+     */
+    renderChiefComplaintContent(complaints) {
+        if (complaints.length === 0) {
+            return '<p class="text-text-secondary">No chief complaint recorded</p>';
+        }
+
+        return `
+            <div class="document-section">
+                <h3>Chief Complaint</h3>
+                ${complaints.map(complaint => `
+                    <div class="complaint-entry mb-4 p-4 bg-black/20 rounded border border-primary/10">
+                        <div class="complaint-header mb-2">
+                            <strong class="text-primary">Primary Concern</strong>
+                            ${complaint.date ? `<span class="text-text-secondary ml-2">• ${window.store.formatDate(complaint.date)}</span>` : ''}
+                        </div>
+                        <div class="complaint-content">
+                            <p class="text-text-primary">${this.escapeHtml(complaint.complaint || 'No complaint recorded')}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    /**
+     * Render family history content
+     */
+    renderFamilyHistoryContent(history) {
+        if (history.length === 0) {
+            return '<p class="text-text-secondary">No family history recorded</p>';
+        }
+
+        const rows = history.map(item => `
+            <tr>
+                <td>${item.relationship || 'Unknown'}</td>
+                <td>${item.relativeGender || 'Unknown'}</td>
+                <td>${item.conditions?.map(c => c.condition).join(', ') || 'None'}</td>
+                <td>${item.status || 'Not specified'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Family History</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Relationship</th>
+                            <th>Gender</th>
+                            <th>Conditions</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render goals content
+     */
+    renderGoalsContent(goals) {
+        if (goals.length === 0) {
+            return '<p class="text-text-secondary">No goals recorded</p>';
+        }
+
+        const rows = goals.map(goal => `
+            <tr>
+                <td>${goal.goal || 'Unknown'}</td>
+                <td>${goal.priority || 'Not specified'}</td>
+                <td>${goal.targetDate ? window.store.formatDate(goal.targetDate) : 'Unknown'}</td>
+                <td>${goal.status || 'Not specified'}</td>
+                <td>${goal.progress || 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Goals</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Goal</th>
+                            <th>Priority</th>
+                            <th>Target Date</th>
+                            <th>Status</th>
+                            <th>Progress</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render health concerns content
+     */
+    renderHealthConcernsContent(concerns) {
+        if (concerns.length === 0) {
+            return '<p class="text-text-secondary">No health concerns recorded</p>';
+        }
+
+        const rows = concerns.map(concern => `
+            <tr>
+                <td>${concern.concern || 'Unknown'}</td>
+                <td>${concern.category || 'Not specified'}</td>
+                <td>${concern.status || 'Not specified'}</td>
+                <td>${concern.date ? window.store.formatDate(concern.date) : 'Unknown'}</td>
+                <td>${concern.author || 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Health Concerns</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Concern</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Author</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    /**
+     * Render instructions content
+     */
+    renderInstructionsContent(instructions) {
+        if (instructions.length === 0) {
+            return '<p class="text-text-secondary">No instructions recorded</p>';
+        }
+
+        return `
+            <div class="document-section">
+                <h3>Patient Instructions</h3>
+                ${instructions.map(instruction => `
+                    <div class="instruction-entry mb-4 p-4 bg-black/20 rounded border border-primary/10">
+                        <div class="instruction-header mb-2">
+                            <strong class="text-primary">${instruction.code || 'Instruction'}</strong>
+                            ${instruction.date ? `<span class="text-text-secondary ml-2">• ${window.store.formatDate(instruction.date)}</span>` : ''}
+                            ${instruction.status ? `<span class="text-xs px-2 py-1 bg-primary/20 rounded ml-2">${instruction.status}</span>` : ''}
+                        </div>
+                        <div class="instruction-content">
+                            <p class="text-text-primary">${this.escapeHtml(instruction.instruction || 'No instruction content')}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    renderMedicalEquipmentContent(equipment) {
+        if (equipment.length === 0) {
+            return '<p class="text-text-secondary">No medical equipment recorded</p>';
+        }
+
+        const rows = equipment.map(device => `
+            <tr>
+                <td>${device.deviceName || 'Unknown'}</td>
+                <td>${device.manufacturer || 'Unknown'}</td>
+                <td>${device.serialNumber || 'Not specified'}</td>
+                <td>${device.implantDate ? window.store.formatDate(device.implantDate) : 'Unknown'}</td>
+                <td>${device.status || 'Not specified'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Medical Equipment</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Device Name</th>
+                            <th>Manufacturer</th>
+                            <th>Serial Number</th>
+                            <th>Implant Date</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    renderMentalStatusContent(assessments) {
+        if (assessments.length === 0) {
+            return '<p class="text-text-secondary">No mental status assessments recorded</p>';
+        }
+
+        const rows = assessments.map(assessment => `
+            <tr>
+                <td>${assessment.assessment || 'Unknown'}</td>
+                <td>${assessment.result || 'Not specified'}</td>
+                <td>${assessment.date ? window.store.formatDate(assessment.date) : 'Unknown'}</td>
+                <td>${assessment.examiner || 'Unknown'}</td>
+                <td>${assessment.status || 'Not specified'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Mental Status</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Assessment</th>
+                            <th>Result</th>
+                            <th>Date</th>
+                            <th>Examiner</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    renderNutritionContent(nutrition) {
+        if (nutrition.length === 0) {
+            return '<p class="text-text-secondary">No nutrition information recorded</p>';
+        }
+
+        const rows = nutrition.map(item => `
+            <tr>
+                <td>${item.dietType || 'Unknown'}</td>
+                <td>${item.restrictions || 'None specified'}</td>
+                <td>${item.calories || 'Not specified'}</td>
+                <td>${item.protein || 'Not specified'}</td>
+                <td>${item.date ? window.store.formatDate(item.date) : 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Nutrition</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Diet Type</th>
+                            <th>Restrictions</th>
+                            <th>Calories</th>
+                            <th>Protein</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    renderPayersContent(payers) {
+        if (payers.length === 0) {
+            return '<p class="text-text-secondary">No insurance information recorded</p>';
+        }
+
+        const rows = payers.map(payer => `
+            <tr>
+                <td>${payer.payerName || 'Unknown'}</td>
+                <td>${payer.policyNumber || 'Not specified'}</td>
+                <td>${payer.groupNumber || 'Not specified'}</td>
+                <td>${payer.policyType || 'Not specified'}</td>
+                <td>${payer.effectiveDate ? window.store.formatDate(payer.effectiveDate) : 'Unknown'}</td>
+                <td>${payer.expirationDate ? window.store.formatDate(payer.expirationDate) : 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Insurance Information</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Payer Name</th>
+                            <th>Policy Number</th>
+                            <th>Group Number</th>
+                            <th>Policy Type</th>
+                            <th>Effective Date</th>
+                            <th>Expiration Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    renderPhysicalExamContent(exams) {
+        if (exams.length === 0) {
+            return '<p class="text-text-secondary">No physical exam findings recorded</p>';
+        }
+
+        const rows = exams.map(exam => `
+            <tr>
+                <td>${exam.bodySystem || 'Unknown'}</td>
+                <td>${exam.findings || 'No findings'}</td>
+                <td>${exam.abnormal ? 'Yes' : 'No'}</td>
+                <td>${exam.date ? window.store.formatDate(exam.date) : 'Unknown'}</td>
+                <td>${exam.examiner || 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Physical Exam</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Body System</th>
+                            <th>Findings</th>
+                            <th>Abnormal</th>
+                            <th>Date</th>
+                            <th>Examiner</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows}
+                    </tbody>
+                </table>
+            </div>
+        `;
+    }
+
+    renderReasonForVisitContent(reasons) {
+        if (reasons.length === 0) {
+            return '<p class="text-text-secondary">No reason for visit recorded</p>';
+        }
+
+        return `
+            <div class="document-section">
+                <h3>Reason for Visit</h3>
+                ${reasons.map(reason => `
+                    <div class="reason-entry mb-4 p-4 bg-black/20 rounded border border-primary/10">
+                        <div class="reason-header mb-2">
+                            <strong class="text-primary">Visit Reason</strong>
+                            ${reason.date ? `<span class="text-text-secondary ml-2">• ${window.store.formatDate(reason.date)}</span>` : ''}
+                        </div>
+                        <div class="reason-content">
+                            <p class="text-text-primary">${this.escapeHtml(reason.reason || 'No reason specified')}</p>
+                        </div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+
+    renderReviewOfSystemsContent(systems) {
+        if (systems.length === 0) {
+            return '<p class="text-text-secondary">No review of systems recorded</p>';
+        }
+
+        const rows = systems.map(system => `
+            <tr>
+                <td>${system.system || 'Unknown'}</td>
+                <td>${system.findings || 'No findings'}</td>
+                <td>${system.status || 'Not specified'}</td>
+                <td>${system.date ? window.store.formatDate(system.date) : 'Unknown'}</td>
+            </tr>
+        `).join('');
+
+        return `
+            <div class="document-section">
+                <h3>Review of Systems</h3>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>System</th>
+                            <th>Findings</th>
+                            <th>Status</th>
+                            <th>Date</th>
                         </tr>
                     </thead>
                     <tbody>
