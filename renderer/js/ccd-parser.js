@@ -56,6 +56,7 @@ class CCDParser {
                 physicalExam: this.parsePhysicalExam(document),
                 reasonForVisit: this.parseReasonForVisit(document),
                 reviewOfSystems: this.parseReviewOfSystems(document),
+                sectionMetadata: this.parseSectionMetadata(document),
                 raw: document
             };
         } catch (error) {
@@ -67,12 +68,25 @@ class CCDParser {
     parseHeader(document) {
         return {
             id: this.extractValue(document.id, '@_root'),
+            idExtension: this.extractValue(document.id, '@_extension'),
             title: this.extractValue(document.title),
             effectiveTime: this.extractValue(document.effectiveTime, '@_value'),
             confidentialityCode: this.extractValue(document.confidentialityCode, '@_code'),
             languageCode: this.extractValue(document.languageCode, '@_code'),
             setId: this.extractValue(document.setId, '@_root'),
             versionNumber: this.extractValue(document.versionNumber, '@_value'),
+            realmCode: this.extractValue(document.realmCode, '@_code'),
+            typeId: {
+                root: this.extractValue(document.typeId, '@_root'),
+                extension: this.extractValue(document.typeId, '@_extension')
+            },
+            documentCode: {
+                code: this.extractValue(document.code, '@_code'),
+                codeSystem: this.extractValue(document.code, '@_codeSystem'),
+                codeSystemName: this.extractValue(document.code, '@_codeSystemName'),
+                displayName: this.extractValue(document.code, '@_displayName')
+            },
+            templateIds: this.parseTemplateIds(document.templateId),
             author: this.parseAuthor(document.author)
         };
     }
@@ -97,18 +111,34 @@ class CCDParser {
         const patient = patientRole.patient;
         if (!patient) return null;
 
+        // Extract all patient IDs
+        const ids = Array.isArray(patientRole.id) ? patientRole.id : [patientRole.id];
+        const patientIds = ids.map(id => ({
+            root: this.extractValue(id, '@_root'),
+            extension: this.extractValue(id, '@_extension'),
+            type: this.getIdType(this.extractValue(id, '@_root'))
+        })).filter(id => id.root);
+
         return {
             id: this.extractValue(patientRole.id, '@_root'),
             mrn: this.extractValue(patientRole.id, '@_extension'),
+            ids: patientIds,
             name: this.parseName(patient.name),
             gender: this.extractValue(patient.administrativeGenderCode, '@_code'),
+            genderDisplay: this.extractValue(patient.administrativeGenderCode, '@_displayName'),
             dateOfBirth: this.extractValue(patient.birthTime, '@_value'),
             race: this.extractValue(patient.raceCode, '@_displayName'),
+            raceCode: this.extractValue(patient.raceCode, '@_code'),
             ethnicity: this.extractValue(patient.ethnicGroupCode, '@_displayName'),
+            ethnicityCode: this.extractValue(patient.ethnicGroupCode, '@_code'),
             language: this.extractValue(patient.languageCommunication?.languageCode, '@_code'),
             addresses: this.parseAddresses(patientRole.addr),
             telecom: this.parseTelecom(patientRole.telecom),
             maritalStatus: this.extractValue(patient.maritalStatusCode, '@_displayName'),
+            maritalStatusCode: this.extractValue(patient.maritalStatusCode, '@_code'),
+            religiousAffiliation: this.extractValue(patient.religiousAffiliationCode, '@_displayName'),
+            religiousAffiliationCode: this.extractValue(patient.religiousAffiliationCode, '@_code'),
+            birthplace: this.parseBirthplace(patient.birthplace),
             guardians: this.parseGuardians(patient.guardian)
         };
     }
@@ -120,20 +150,31 @@ class CCDParser {
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
         
         return entries.map(entry => {
-            const observation = entry.act?.entryRelationship?.observation;
+            const act = entry.act;
+            if (!act) return null;
+
+            const observation = act.entryRelationship?.observation;
             if (!observation) return null;
 
             const participant = observation.participant?.[0];
             const allergen = participant?.participantRole?.playingEntity;
 
             return {
-                id: this.extractValue(observation.id, '@_root'),
+                id: this.extractValue(act.id, '@_root'),
+                entryId: this.extractValue(observation.id, '@_root'),
                 substance: this.extractValue(allergen?.code, '@_displayName') || 
-                          this.extractValue(allergen?.name),
+                          this.extractValue(allergen?.name) ||
+                          this.extractValue(allergen?.code?.originalText?.reference),
                 reaction: this.extractReactions(observation.entryRelationship),
                 severity: this.extractSeverity(observation.entryRelationship),
                 status: this.extractValue(observation.statusCode, '@_code'),
+                actStatus: this.extractValue(act.statusCode, '@_code'),
                 onsetDate: this.extractValue(observation.effectiveTime?.low, '@_value'),
+                effectiveTime: {
+                    low: this.extractValue(act.effectiveTime?.low, '@_value'),
+                    high: this.extractValue(act.effectiveTime?.high, '@_value'),
+                    value: this.extractValue(act.effectiveTime, '@_value')
+                },
                 notes: this.extractValue(observation.text)
             };
         }).filter(Boolean);
@@ -823,6 +864,200 @@ class CCDParser {
         })?.section;
     }
 
+    getIdType(root) {
+        if (!root) return 'Unknown';
+        
+        const idTypes = {
+            '2.16.840.1.113883.4.1': 'SSN',
+            '2.16.840.1.113883.19': 'Medical Record',
+            '2.16.840.1.113883.4.6': 'NPI',
+            '2.16.840.1.113883.5.6': 'Driver License',
+            '2.16.840.1.113883.4.3': 'State ID'
+        };
+        
+        return idTypes[root] || 'Other ID';
+    }
+
+    parseBirthplace(birthplace) {
+        if (!birthplace) return null;
+        
+        const place = birthplace.place;
+        if (!place) return null;
+        
+        const addr = place.addr;
+        if (!addr) return null;
+        
+        return {
+            state: this.extractValue(addr.state),
+            postalCode: this.extractValue(addr.postalCode),
+            country: this.extractValue(addr.country)
+        };
+    }
+
+    parseTemplateIds(templateId) {
+        if (!templateId) return [];
+        
+        const templates = Array.isArray(templateId) ? templateId : [templateId];
+        return templates.map(t => ({
+            root: this.extractValue(t, '@_root'),
+            extension: this.extractValue(t, '@_extension')
+        })).filter(t => t.root);
+    }
+
+    extractSectionMetadata(section) {
+        if (!section) return {};
+        
+        return {
+            templateIds: this.parseTemplateIds(section.templateId),
+            code: {
+                code: this.extractValue(section.code, '@_code'),
+                codeSystem: this.extractValue(section.code, '@_codeSystem'),
+                codeSystemName: this.extractValue(section.code, '@_codeSystemName'),
+                displayName: this.extractValue(section.code, '@_displayName')
+            },
+            title: this.extractValue(section.title),
+            narrativeText: this.extractNarrativeText(section.text)
+        };
+    }
+
+    extractNarrativeText(textElement) {
+        if (!textElement) return null;
+        
+        // If it's a simple text node
+        if (typeof textElement === 'string') {
+            return textElement;
+        }
+        
+        // If it has #text property
+        if (textElement['#text']) {
+            return textElement['#text'];
+        }
+        
+        // For complex HTML-like structures, extract all text content
+        let text = '';
+        
+        if (textElement.paragraph) {
+            const paragraphs = Array.isArray(textElement.paragraph) ? textElement.paragraph : [textElement.paragraph];
+            text = paragraphs.map(p => this.extractValue(p) || '').join('\n');
+        }
+        
+        if (textElement.table) {
+            // Extract table as formatted text
+            text += this.extractTableText(textElement.table);
+        }
+        
+        if (textElement.list) {
+            // Extract list content
+            text += this.extractListText(textElement.list);
+        }
+        
+        return text.trim() || null;
+    }
+
+    extractTableText(table) {
+        if (!table) return '';
+        
+        let text = '';
+        
+        // Extract headers
+        if (table.thead && table.thead.tr) {
+            const headers = Array.isArray(table.thead.tr) ? table.thead.tr : [table.thead.tr];
+            headers.forEach(row => {
+                if (row.th) {
+                    const headerCells = Array.isArray(row.th) ? row.th : [row.th];
+                    const headerText = headerCells.map(cell => this.extractValue(cell) || '').join(' | ');
+                    text += headerText + '\n';
+                }
+            });
+        }
+        
+        // Extract body rows
+        if (table.tbody && table.tbody.tr) {
+            const rows = Array.isArray(table.tbody.tr) ? table.tbody.tr : [table.tbody.tr];
+            rows.forEach(row => {
+                if (row.td) {
+                    const cells = Array.isArray(row.td) ? row.td : [row.td];
+                    const rowText = cells.map(cell => this.extractValue(cell) || '').join(' | ');
+                    text += rowText + '\n';
+                }
+            });
+        }
+        
+        return text;
+    }
+
+    extractListText(list) {
+        if (!list) return '';
+        
+        let text = '';
+        if (list.item) {
+            const items = Array.isArray(list.item) ? list.item : [list.item];
+            items.forEach((item, index) => {
+                text += `${index + 1}. ${this.extractValue(item) || ''}\n`;
+            });
+        }
+        
+        return text;
+    }
+
+    parseSectionMetadata(document) {
+        const component = document.component?.structuredBody?.component;
+        if (!component) return {};
+
+        const components = Array.isArray(component) ? component : [component];
+        const metadata = {};
+
+        components.forEach(comp => {
+            const section = comp.section;
+            if (!section) return;
+
+            const templates = Array.isArray(section.templateId) ? section.templateId : [section.templateId];
+            const primaryTemplate = templates.find(t => t && t['@_root'])?.['@_root'];
+
+            if (primaryTemplate) {
+                const sectionName = this.getSectionNameFromTemplate(primaryTemplate);
+                if (sectionName) {
+                    metadata[sectionName] = this.extractSectionMetadata(section);
+                }
+            }
+        });
+
+        return metadata;
+    }
+
+    getSectionNameFromTemplate(templateId) {
+        const templateMap = {
+            '2.16.840.1.113883.10.20.22.2.6.1': 'allergies',
+            '2.16.840.1.113883.10.20.22.2.1.1': 'medications',
+            '2.16.840.1.113883.10.20.22.2.5': 'problems',
+            '2.16.840.1.113883.10.20.22.2.7': 'procedures',
+            '2.16.840.1.113883.10.20.22.2.22.1': 'encounters',
+            '2.16.840.1.113883.10.20.22.2.2': 'immunizations',
+            '2.16.840.1.113883.10.20.22.2.4.1': 'vitalSigns',
+            '2.16.840.1.113883.10.20.22.2.3.1': 'labResults',
+            '2.16.840.1.113883.10.20.22.2.17': 'socialHistory',
+            '2.16.840.1.113883.10.20.22.2.14': 'functionalStatus',
+            '2.16.840.1.113883.10.20.22.2.10': 'planOfCare',
+            '2.16.840.1.113883.10.20.22.2.65': 'notes',
+            '2.16.840.1.113883.10.20.22.2.21.1': 'advanceDirectives',
+            '2.16.840.1.113883.10.20.22.2.8': 'assessment',
+            '2.16.840.1.113883.10.20.22.2.13': 'chiefComplaint',
+            '2.16.840.1.113883.10.20.22.2.15': 'familyHistory',
+            '2.16.840.1.113883.10.20.22.2.60': 'goals',
+            '2.16.840.1.113883.10.20.22.2.58': 'healthConcerns',
+            '2.16.840.1.113883.10.20.22.2.45': 'instructions',
+            '2.16.840.1.113883.10.20.22.2.23': 'medicalEquipment',
+            '2.16.840.1.113883.10.20.22.2.56': 'mentalStatus',
+            '2.16.840.1.113883.10.20.22.2.57': 'nutrition',
+            '2.16.840.1.113883.10.20.22.2.18': 'payers',
+            '2.16.840.1.113883.10.20.22.2.33': 'physicalExam',
+            '2.16.840.1.113883.10.20.22.2.12': 'reasonForVisit',
+            '2.16.840.1.113883.10.20.22.2.10': 'reviewOfSystems'
+        };
+
+        return templateMap[templateId] || null;
+    }
+
     extractValue(obj, path = null) {
         if (!obj) return null;
         
@@ -844,14 +1079,28 @@ class CCDParser {
 
         const given = nameObj.given;
         const family = nameObj.family;
+        const prefix = nameObj.prefix;
+        const suffix = nameObj.suffix;
         
-        const firstName = Array.isArray(given) ? given[0] : given;
-        const lastName = Array.isArray(family) ? family[0] : family;
+        // Handle multiple given names and qualifiers
+        const givenArray = Array.isArray(given) ? given : [given];
+        const givenNames = givenArray.map(g => ({
+            value: this.extractValue(g),
+            qualifier: this.extractValue(g, '@_qualifier'),
+            use: this.extractValue(g, '@_use')
+        })).filter(g => g.value);
+        
+        const firstName = givenNames.length > 0 ? givenNames[0].value : null;
+        const lastName = Array.isArray(family) ? this.extractValue(family[0]) : this.extractValue(family);
         
         return {
-            first: this.extractValue(firstName),
-            last: this.extractValue(lastName),
-            full: `${this.extractValue(firstName) || ''} ${this.extractValue(lastName) || ''}`.trim()
+            first: firstName,
+            last: lastName,
+            prefix: this.extractValue(prefix),
+            suffix: this.extractValue(suffix),
+            givenNames: givenNames,
+            use: this.extractValue(nameObj, '@_use'),
+            full: `${this.extractValue(prefix) ? this.extractValue(prefix) + ' ' : ''}${firstName || ''} ${lastName || ''}${this.extractValue(suffix) ? ' ' + this.extractValue(suffix) : ''}`.trim()
         };
     }
 
@@ -912,12 +1161,49 @@ class CCDParser {
 
     // Additional helper methods for complex extractions
     extractReactions(entryRelationships) {
-        // Implementation for extracting allergy reactions
+        if (!entryRelationships) return null;
+        
+        const relationships = Array.isArray(entryRelationships) ? entryRelationships : [entryRelationships];
+        const reactionEntry = relationships.find(rel => 
+            rel.observation?.code?.['@_code'] === '33999-4' || // Status observation
+            rel.observation?.value?.['@_displayName'] // Any observation with value
+        );
+        
+        if (reactionEntry?.observation?.value) {
+            return this.extractValue(reactionEntry.observation.value, '@_displayName');
+        }
+        
+        // Also check if there's a reference to narrative text
+        const textRef = reactionEntry?.observation?.value?.originalText?.reference;
+        if (textRef) {
+            return `Reference: ${this.extractValue(textRef, '@_value')}`;
+        }
+        
         return null;
     }
 
     extractSeverity(entryRelationships) {
-        // Implementation for extracting severity
+        if (!entryRelationships) return null;
+        
+        const relationships = Array.isArray(entryRelationships) ? entryRelationships : [entryRelationships];
+        const severityEntry = relationships.find(rel => 
+            rel.observation?.code?.['@_code'] === '33999-4' && // Alert status observation
+            rel.observation?.value?.['@_code'] === '55561003' // Active status
+        );
+        
+        if (severityEntry?.observation?.value) {
+            return this.extractValue(severityEntry.observation.value, '@_displayName');
+        }
+        
+        // Look for severity-specific codes
+        const severityObs = relationships.find(rel => 
+            rel.observation?.code?.['@_displayName']?.toLowerCase().includes('severity')
+        );
+        
+        if (severityObs?.observation?.value) {
+            return this.extractValue(severityObs.observation.value, '@_displayName');
+        }
+        
         return null;
     }
 

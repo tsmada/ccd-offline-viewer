@@ -6,6 +6,7 @@ class UIManager {
         this.currentView = 'empty';
         this.activeTab = 'patient';
         this.tabs = [
+            { id: 'header', label: 'Document Info', icon: '📄' },
             { id: 'patient', label: 'Patient Info', icon: '👤' },
             { id: 'allergies', label: 'Allergies', icon: '⚠️' },
             { id: 'medications', label: 'Medications', icon: '💊' },
@@ -450,6 +451,7 @@ class UIManager {
      */
     hasTabData(tabId, document) {
         switch (tabId) {
+            case 'header': return !!document.header;
             case 'patient': return !!document.patient;
             case 'allergies': return document.allergies?.length > 0;
             case 'medications': return document.medications?.length > 0;
@@ -524,6 +526,9 @@ class UIManager {
         let content = '';
 
         switch (this.activeTab) {
+            case 'header':
+                content = this.renderHeaderContent(ccdDocument.header, ccdDocument.sectionMetadata);
+                break;
             case 'patient':
                 content = this.renderPatientContent(ccdDocument.patient);
                 break;
@@ -630,15 +635,84 @@ class UIManager {
 
         const patientInfo = window.store?.getPatientInfo();
 
+        // Render all patient IDs
+        const idsSection = patient.ids && patient.ids.length > 0 ? `
+            <div class="document-section">
+                <h4>Patient Identifiers</h4>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Type</th>
+                            <th>Value</th>
+                            <th>Root</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${patient.ids.map(id => `
+                            <tr>
+                                <td>${id.type || 'Unknown'}</td>
+                                <td>${id.extension || 'Not specified'}</td>
+                                <td>${id.root || 'Not specified'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        ` : '';
+
+        // Render addresses
+        const addressesSection = patient.addresses && patient.addresses.length > 0 ? `
+            <div class="document-section">
+                <h4>Addresses</h4>
+                ${patient.addresses.map(addr => `
+                    <div class="mb-2">
+                        <strong>${addr.use || 'Address'}:</strong><br>
+                        ${addr.line || ''}<br>
+                        ${addr.city || ''}, ${addr.state || ''} ${addr.postalCode || ''}<br>
+                        ${addr.country || ''}
+                    </div>
+                `).join('')}
+            </div>
+        ` : '';
+
+        // Render contact information
+        const telecomSection = patient.telecom && patient.telecom.length > 0 ? `
+            <div class="document-section">
+                <h4>Contact Information</h4>
+                ${patient.telecom.map(tel => `
+                    <div>
+                        <strong>${tel.use || 'Contact'}:</strong> ${tel.value || 'Not specified'}
+                    </div>
+                `).join('')}
+            </div>
+        ` : '';
+
+        // Render guardian information
+        const guardiansSection = patient.guardians && patient.guardians.length > 0 ? `
+            <div class="document-section">
+                <h4>Guardians</h4>
+                ${patient.guardians.map(guardian => `
+                    <div class="mb-2">
+                        <strong>Name:</strong> ${guardian.name?.full || 'Unknown'}<br>
+                        <strong>Relationship:</strong> ${guardian.relationship || 'Not specified'}<br>
+                        ${guardian.address ? `<strong>Address:</strong> ${guardian.address.line || ''}, ${guardian.address.city || ''}, ${guardian.address.state || ''}` : ''}
+                    </div>
+                `).join('')}
+            </div>
+        ` : '';
+
         return `
             <div class="document-section">
                 <h3>Patient Information</h3>
                 <div class="grid grid-cols-2 gap-4">
                     <div>
-                        <strong>Name:</strong> ${patientInfo?.name || 'Unknown'}
+                        <strong>Name:</strong> ${patient.name?.full || 'Unknown'}
+                        ${patient.name?.prefix ? `<br><small>Prefix: ${patient.name.prefix}</small>` : ''}
+                        ${patient.name?.suffix ? `<br><small>Suffix: ${patient.name.suffix}</small>` : ''}
+                        ${patient.name?.use ? `<br><small>Use: ${patient.name.use}</small>` : ''}
                     </div>
                     <div>
-                        <strong>ID:</strong> ${patientInfo?.id || 'Unknown'}
+                        <strong>Primary ID:</strong> ${patientInfo?.id || 'Unknown'}
                     </div>
                     <div>
                         <strong>Date of Birth:</strong> ${patientInfo?.dateOfBirth || 'Unknown'}
@@ -647,13 +721,150 @@ class UIManager {
                         <strong>Age:</strong> ${patientInfo?.age || 'Unknown'}
                     </div>
                     <div>
-                        <strong>Gender:</strong> ${patientInfo?.gender || 'Unknown'}
+                        <strong>Gender:</strong> ${patient.genderDisplay || patient.gender || 'Unknown'}
                     </div>
                     <div>
                         <strong>Race:</strong> ${patient.race || 'Not specified'}
                     </div>
+                    <div>
+                        <strong>Ethnicity:</strong> ${patient.ethnicity || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Marital Status:</strong> ${patient.maritalStatus || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Religious Affiliation:</strong> ${patient.religiousAffiliation || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Birthplace:</strong> ${patient.birthplace ? `${patient.birthplace.state || ''}, ${patient.birthplace.country || ''}` : 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Language:</strong> ${patient.language || 'Not specified'}
+                    </div>
                 </div>
             </div>
+            ${idsSection}
+            ${addressesSection}
+            ${telecomSection}
+            ${guardiansSection}
+        `;
+    }
+
+    /**
+     * Render document header content
+     */
+    renderHeaderContent(header, sectionMetadata) {
+        if (!header) {
+            return '<p class="text-text-secondary">No document header available</p>';
+        }
+
+        // Template IDs section
+        const templateIdsSection = header.templateIds && header.templateIds.length > 0 ? `
+            <div class="document-section">
+                <h4>Template IDs</h4>
+                <table class="document-table">
+                    <thead>
+                        <tr>
+                            <th>Root</th>
+                            <th>Extension</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${header.templateIds.map(template => `
+                            <tr>
+                                <td>${template.root || 'Not specified'}</td>
+                                <td>${template.extension || 'Not specified'}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        ` : '';
+
+        // Section narrative text section
+        const narrativeSection = sectionMetadata && Object.keys(sectionMetadata).length > 0 ? `
+            <div class="document-section">
+                <h4>Section Narrative Text</h4>
+                ${Object.entries(sectionMetadata).map(([sectionName, metadata]) => {
+                    if (!metadata.narrativeText) return '';
+                    return `
+                        <div class="mb-4">
+                            <h5>${metadata.title || sectionName}</h5>
+                            <div class="bg-background border border-border rounded p-3">
+                                <pre class="whitespace-pre-wrap text-sm">${metadata.narrativeText}</pre>
+                            </div>
+                        </div>
+                    `;
+                }).join('')}
+            </div>
+        ` : '';
+
+        return `
+            <div class="document-section">
+                <h3>Document Information</h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <strong>Document ID:</strong> ${header.id || 'Unknown'}
+                        ${header.idExtension ? `<br><small>Extension: ${header.idExtension}</small>` : ''}
+                    </div>
+                    <div>
+                        <strong>Title:</strong> ${header.title || 'Unknown'}
+                    </div>
+                    <div>
+                        <strong>Effective Time:</strong> ${header.effectiveTime ? window.store.formatDate(header.effectiveTime) : 'Unknown'}
+                    </div>
+                    <div>
+                        <strong>Confidentiality:</strong> ${header.confidentialityCode || 'Unknown'}
+                    </div>
+                    <div>
+                        <strong>Language:</strong> ${header.languageCode || 'Unknown'}
+                    </div>
+                    <div>
+                        <strong>Realm:</strong> ${header.realmCode || 'Unknown'}
+                    </div>
+                    <div>
+                        <strong>Set ID:</strong> ${header.setId || 'Not specified'}
+                    </div>
+                    <div>
+                        <strong>Version:</strong> ${header.versionNumber || 'Not specified'}
+                    </div>
+                </div>
+
+                ${header.typeId ? `
+                    <div class="mt-4">
+                        <h4>Type ID</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><strong>Root:</strong> ${header.typeId.root || 'Not specified'}</div>
+                            <div><strong>Extension:</strong> ${header.typeId.extension || 'Not specified'}</div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${header.documentCode ? `
+                    <div class="mt-4">
+                        <h4>Document Code</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><strong>Code:</strong> ${header.documentCode.code || 'Not specified'}</div>
+                            <div><strong>Display Name:</strong> ${header.documentCode.displayName || 'Not specified'}</div>
+                            <div><strong>Code System:</strong> ${header.documentCode.codeSystem || 'Not specified'}</div>
+                            <div><strong>Code System Name:</strong> ${header.documentCode.codeSystemName || 'Not specified'}</div>
+                        </div>
+                    </div>
+                ` : ''}
+
+                ${header.author ? `
+                    <div class="mt-4">
+                        <h4>Author</h4>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div><strong>Name:</strong> ${header.author.name?.full || 'Unknown'}</div>
+                            <div><strong>ID:</strong> ${header.author.id || 'Not specified'}</div>
+                            <div><strong>Organization:</strong> ${header.author.organization?.name || 'Not specified'}</div>
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+            ${templateIdsSection}
+            ${narrativeSection}
         `;
     }
 
@@ -671,6 +882,9 @@ class UIManager {
                 <td>${allergy.reaction || 'Not specified'}</td>
                 <td>${allergy.severity || 'Not specified'}</td>
                 <td>${allergy.status || 'Unknown'}</td>
+                <td>${allergy.onsetDate ? window.store.formatDate(allergy.onsetDate) : 'Unknown'}</td>
+                <td>${allergy.id || 'Not specified'}</td>
+                <td>${allergy.effectiveTime?.value ? window.store.formatDate(allergy.effectiveTime.value) : (allergy.effectiveTime?.low ? window.store.formatDate(allergy.effectiveTime.low) : 'Not specified')}</td>
             </tr>
         `).join('');
 
@@ -684,6 +898,9 @@ class UIManager {
                             <th>Reaction</th>
                             <th>Severity</th>
                             <th>Status</th>
+                            <th>Onset Date</th>
+                            <th>ID</th>
+                            <th>Effective Time</th>
                         </tr>
                     </thead>
                     <tbody>
