@@ -71,7 +71,19 @@ class CCDViewerApp {
      */
     initializeUI() {
         if (!window.uiManager) {
-            throw new Error('UI Manager not available');
+            console.error('UI Manager not available - attempting to create fallback');
+            // Try to create UIManager as fallback
+            if (window.UIManager) {
+                try {
+                    window.uiManager = new window.UIManager();
+                    console.log('Created fallback UIManager');
+                } catch (error) {
+                    console.error('Failed to create fallback UIManager:', error);
+                    throw new Error('UI Manager not available and fallback failed');
+                }
+            } else {
+                throw new Error('UI Manager class not loaded');
+            }
         }
 
         window.uiManager.initialize();
@@ -179,9 +191,12 @@ class CCDViewerApp {
             // Store raw XML content
             window.store?.setRawXML(result.content);
 
-            // Parse document
-            const parser = new window.CCDParser();
+            // Parse document using enhanced CCDA parser
+            console.log('CCDAParser available:', !!window.CCDAParser);
+            console.log('Using parser:', window.CCDAParser ? 'CCDAParser' : 'CCDParser');
+            const parser = window.CCDAParser ? new window.CCDAParser() : new window.CCDParser();
             const ccdDocument = await parser.parse(result.content);
+            console.log('Parsed document type:', ccdDocument.metadata?.documentType || 'unknown');
             
             window.store?.setDocument(ccdDocument);
             window.uiManager?.showToast('Document loaded successfully!', 'success');
@@ -382,7 +397,7 @@ class CCDViewerApp {
      */
     getAppInfo() {
         return {
-            name: 'CCD Viewer',
+            name: 'C-CDA Viewer',
             version: '1.0.0',
             description: 'Modern Healthcare Document Viewer',
             isElectron: !!this.electronAPI,

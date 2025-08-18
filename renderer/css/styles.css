@@ -9,7 +9,8 @@ body {
     font-family: 'JetBrains Mono', monospace;
     background: var(--color-background);
     color: var(--color-primary);
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
 }
 
 .font-mono {
@@ -128,6 +129,7 @@ body {
 
 /* Overflow */
 .overflow-hidden { overflow: hidden; }
+.overflow-y-auto { overflow-y: auto; }
 .pointer-events-none { pointer-events: none; }
 
 /* Cursor */
@@ -291,6 +293,32 @@ kbd {
     margin-bottom: 1rem;
 }
 
+#tab-content {
+    max-height: 70vh;
+    overflow-y: auto;
+    padding-right: 0.5rem;
+}
+
+/* Custom scrollbar styling */
+#tab-content::-webkit-scrollbar {
+    width: 8px;
+}
+
+#tab-content::-webkit-scrollbar-track {
+    background: var(--color-surface);
+    border-radius: 4px;
+}
+
+#tab-content::-webkit-scrollbar-thumb {
+    background: var(--color-border);
+    border-radius: 4px;
+    border: 1px solid var(--color-surface);
+}
+
+#tab-content::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+}
+
 .document-section h3 {
     color: var(--color-primary);
     margin-bottom: 0.5rem;
@@ -401,5 +429,437 @@ kbd {
     .tab-content * {
         visibility: visible !important;
         display: block !important;
+    }
+}
+
+/* C-CDA Document-Specific Styles */
+
+/* Section titles */
+.section-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: var(--color-primary);
+    border-bottom: 2px solid var(--color-border);
+    padding-bottom: 0.5rem;
+}
+
+/* Health Concerns */
+.health-concerns-container {
+    display: grid;
+    gap: 1rem;
+}
+
+.health-concern-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.concern-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.concern-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+/* Goals */
+.goals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+}
+
+.goal-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.goal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.goal-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.goal-progress {
+    margin-bottom: 1rem;
+}
+
+.progress-bar {
+    background: var(--color-border);
+    border-radius: 0.25rem;
+    height: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 0.25rem;
+}
+
+.progress-fill {
+    background: var(--color-success);
+    height: 100%;
+    transition: width 0.3s ease;
+}
+
+.progress-text {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+/* Interventions */
+.interventions-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.intervention-item {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.intervention-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.intervention-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.intervention-timeline {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+}
+
+.timeline-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.timeline-item.completed {
+    color: var(--color-success);
+}
+
+.timeline-label {
+    font-size: 0.875rem;
+    font-weight: bold;
+}
+
+.timeline-date {
+    font-size: 0.875rem;
+    color: var(--color-text-secondary);
+}
+
+/* DICOM Studies */
+.dicom-studies {
+    display: grid;
+    gap: 1rem;
+}
+
+.dicom-study-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.study-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.study-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.modality-badge {
+    background: var(--color-primary);
+    color: var(--color-background);
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+}
+
+.uid-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--color-text-secondary);
+    word-break: break-all;
+}
+
+/* Anesthesia Records */
+.anesthesia-records {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.anesthesia-record {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.anesthesia-type {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-primary);
+    margin-bottom: 0.75rem;
+}
+
+/* Complications */
+.complications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.complication-item {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.complication-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.complication-title {
+    font-size: 1.1rem;
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+/* Status badges */
+.status-badge, .priority-badge, .severity-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-active, .status-completed {
+    background: var(--color-success);
+    color: var(--color-background);
+}
+
+.status-inactive, .status-cancelled {
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+.status-pending, .status-in_progress {
+    background: var(--color-warning);
+    color: var(--color-background);
+}
+
+.priority-high, .severity-high {
+    background: var(--color-error);
+    color: var(--color-background);
+}
+
+.priority-medium, .severity-medium {
+    background: var(--color-warning);
+    color: var(--color-background);
+}
+
+.priority-low, .severity-low {
+    background: var(--color-success);
+    color: var(--color-background);
+}
+
+.priority-normal {
+    background: var(--color-border);
+    color: var(--color-text-secondary);
+}
+
+/* Detail rows */
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+}
+
+.detail-row .label {
+    font-weight: bold;
+    color: var(--color-primary);
+    min-width: 120px;
+}
+
+.detail-row .value {
+    color: var(--color-text-secondary);
+    text-align: right;
+}
+
+/* Notes sections */
+.concern-notes, .goal-notes, .intervention-notes, .anesthesia-notes, .complication-notes {
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    background: var(--color-background);
+    border-radius: 0.25rem;
+    border-left: 3px solid var(--color-primary);
+}
+
+.concern-notes p, .goal-notes p, .intervention-notes p, .anesthesia-notes p, .complication-notes p {
+    margin: 0;
+    color: var(--color-text-secondary);
+    line-height: 1.5;
+}
+
+/* No data messages */
+.no-data-message {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+    color: var(--color-text-secondary);
+}
+
+.no-data-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+}
+
+/* Required section indicators */
+.required-section {
+    position: relative;
+}
+
+.required-section::after {
+    content: "*";
+    color: var(--color-error);
+    margin-left: 0.25rem;
+    font-weight: bold;
+}
+
+/* Narrative content */
+.narrative-content {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: 0.5rem;
+    padding: 1rem;
+}
+
+.text-content {
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+}
+
+.structured-list {
+    margin: 1rem 0;
+    padding-left: 1.5rem;
+}
+
+.structured-list li {
+    margin: 0.5rem 0;
+    color: var(--color-text-secondary);
+}
+
+.structured-paragraph {
+    margin: 0.75rem 0;
+    line-height: 1.6;
+    color: var(--color-text-secondary);
+}
+
+/* XML Find Functionality */
+.xml-search-match {
+    background-color: rgba(251, 191, 36, 0.3) !important;
+    color: rgb(254, 240, 138) !important;
+    border-radius: 2px;
+    padding: 1px 2px;
+}
+
+.xml-search-current {
+    background-color: rgba(251, 191, 36, 0.6) !important;
+    color: rgb(254, 240, 138) !important;
+    box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.8);
+    animation: xml-search-pulse 0.5s ease-in-out;
+}
+
+@keyframes xml-search-pulse {
+    0% { box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.8); }
+    50% { box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.5); }
+    100% { box-shadow: 0 0 0 1px rgba(251, 191, 36, 0.8); }
+}
+
+#xml-find-controls input:focus {
+    outline: none;
+    border-color: rgba(var(--color-primary-rgb), 0.5);
+    box-shadow: 0 0 0 2px rgba(var(--color-primary-rgb), 0.2);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .goals-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .detail-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+    }
+    
+    .detail-row .value {
+        text-align: left;
+    }
+    
+    .concern-header, .goal-header, .intervention-header, .complication-header, .study-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+    }
+
+    #xml-find-controls {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+    
+    #xml-find-controls .flex {
+        flex-direction: column;
+        align-items: stretch;
     }
 }

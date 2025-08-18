@@ -5,12 +5,16 @@ class Store {
     constructor() {
         this.state = {
             document: null,
+            documentType: null,
             fileName: null,
             rawXML: null,
             loading: false,
             error: null,
             theme: 'winamp',
             activeTab: 'patient',
+            supportedSections: [],
+            validationErrors: [],
+            metadata: null,
             panels: {
                 visualizer: false,
                 themes: true,
@@ -111,11 +115,62 @@ class Store {
      * Actions for common state updates
      */
     setDocument(document) {
-        this.setState({ 
+        const updates = { 
             document,
             error: null,
             loading: false
-        });
+        };
+
+        // Extract and store document metadata
+        if (document && document.metadata) {
+            updates.documentType = document.metadata.documentType;
+            updates.metadata = document.metadata;
+            updates.supportedSections = document.metadata.supportedSections || [];
+            
+            // Validate document sections
+            this.validateDocument(document);
+        } else {
+            updates.documentType = null;
+            updates.metadata = null;
+            updates.supportedSections = [];
+            updates.validationErrors = [];
+        }
+
+        this.setState(updates);
+    }
+
+    /**
+     * Validate document sections against requirements
+     */
+    validateDocument(document) {
+        if (!document || !document.metadata) {
+            this.setState({ validationErrors: [] });
+            return;
+        }
+
+        const errors = [];
+        const documentType = document.metadata.documentType;
+        
+        // Use section registry to validate required sections
+        if (window.SectionRegistry) {
+            const registry = new window.SectionRegistry();
+            const requiredSections = registry.getRequiredSections(documentType);
+
+            requiredSections.forEach(section => {
+                const sectionData = document[section.id];
+                if (!sectionData || 
+                    (Array.isArray(sectionData) && sectionData.length === 0)) {
+                    errors.push(`Missing required section: ${section.label}`);
+                }
+            });
+
+            // Check for document type compatibility
+            if (document.metadata.validationResult && !document.metadata.validationResult.valid) {
+                errors.push(document.metadata.validationResult.error);
+            }
+        }
+
+        this.setState({ validationErrors: errors });
     }
 
     setRawXML(rawXML) {
@@ -175,11 +230,15 @@ class Store {
     reset() {
         this.setState({
             document: null,
+            documentType: null,
             fileName: null,
             rawXML: null,
             loading: false,
             error: null,
-            activeTab: 'patient'
+            activeTab: 'patient',
+            supportedSections: [],
+            validationErrors: [],
+            metadata: null
         });
     }
 

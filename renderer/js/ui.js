@@ -5,43 +5,33 @@ class UIManager {
     constructor() {
         this.currentView = 'empty';
         this.activeTab = 'patient';
-        this.tabs = [
-            { id: 'header', label: 'Document Info', icon: '📄' },
-            { id: 'patient', label: 'Patient Info', icon: '👤' },
-            { id: 'allergies', label: 'Allergies', icon: '⚠️' },
-            { id: 'medications', label: 'Medications', icon: '💊' },
-            { id: 'problems', label: 'Problems', icon: '🔍' },
-            { id: 'procedures', label: 'Procedures', icon: '🏥' },
-            { id: 'encounters', label: 'Encounters', icon: '📋' },
-            { id: 'immunizations', label: 'Immunizations', icon: '💉' },
-            { id: 'vitals', label: 'Vital Signs', icon: '📊' },
-            { id: 'labs', label: 'Lab Results', icon: '🧪' },
-            { id: 'socialHistory', label: 'Social History', icon: '🚭' },
-            { id: 'functionalStatus', label: 'Functional Status', icon: '♿' },
-            { id: 'planOfCare', label: 'Plan of Care', icon: '📝' },
-            { id: 'notes', label: 'Notes', icon: '📑' },
-            { id: 'advanceDirectives', label: 'Advance Directives', icon: '📋' },
-            { id: 'assessment', label: 'Assessment', icon: '🩺' },
-            { id: 'chiefComplaint', label: 'Chief Complaint', icon: '💬' },
-            { id: 'familyHistory', label: 'Family History', icon: '👨‍👩‍👧‍👦' },
-            { id: 'goals', label: 'Goals', icon: '🎯' },
-            { id: 'healthConcerns', label: 'Health Concerns', icon: '⚠️' },
-            { id: 'instructions', label: 'Instructions', icon: '📋' },
-            { id: 'medicalEquipment', label: 'Medical Equipment', icon: '🔧' },
-            { id: 'mentalStatus', label: 'Mental Status', icon: '🧠' },
-            { id: 'nutrition', label: 'Nutrition', icon: '🥗' },
-            { id: 'payers', label: 'Insurance', icon: '💳' },
-            { id: 'physicalExam', label: 'Physical Exam', icon: '🩺' },
-            { id: 'reasonForVisit', label: 'Reason for Visit', icon: '🏥' },
-            { id: 'reviewOfSystems', label: 'Review of Systems', icon: '📋' },
-            { id: 'rawXML', label: 'Raw XML', icon: '📄' }
-        ];
+        this.documentType = null;
+        this.sectionRegistry = null;
+        this.documentRenderer = null;
+        // Initialize dependencies lazily
+    }
+
+    /**
+     * Initialize dependencies lazily
+     */
+    initializeDependencies() {
+        try {
+            if (window.SectionRegistry) {
+                this.sectionRegistry = new window.SectionRegistry();
+            }
+            if (window.DocumentRenderer) {
+                this.documentRenderer = new window.DocumentRenderer();
+            }
+        } catch (error) {
+            console.warn('Some dependencies not available yet, will use fallbacks:', error);
+        }
     }
 
     /**
      * Initialize UI components and event listeners
      */
     initialize() {
+        this.initializeDependencies();
         this.setupEventListeners();
         this.setupAnimations();
         this.updateUI();
@@ -229,9 +219,12 @@ class UIManager {
             // Store raw XML content
             window.store.setRawXML(content);
             
-            // Parse CCD
-            const parser = new window.CCDParser();
+            // Parse CCD/CCDA document
+            console.log('CCDAParser available:', !!window.CCDAParser);
+            console.log('Using parser:', window.CCDAParser ? 'CCDAParser' : 'CCDParser');
+            const parser = window.CCDAParser ? new window.CCDAParser() : new window.CCDParser();
             const ccdDocument = await parser.parse(content);
+            console.log('Parsed document type:', ccdDocument.metadata?.documentType || 'unknown');
             
             // Update store
             window.store.setDocument(ccdDocument);
@@ -301,7 +294,7 @@ class UIManager {
             window.store.setLoading(true);
             window.store.setFileName('sample-ccd.xml');
             
-            const parser = new window.CCDParser();
+            const parser = window.CCDAParser ? new window.CCDAParser() : new window.CCDParser();
             const ccdDocument = await parser.parse(sampleXML);
             
             window.store.setDocument(ccdDocument);
@@ -333,6 +326,18 @@ class UIManager {
         if ((e.metaKey || e.ctrlKey) && e.key === 'e') {
             e.preventDefault();
             this.showExportMenu();
+        }
+
+        // Cmd/Ctrl + F - Find in raw XML view
+        if ((e.metaKey || e.ctrlKey) && e.key === 'f') {
+            // Only show find if we're in the raw XML tab
+            if (this.activeTab === 'rawXML') {
+                e.preventDefault();
+                const findControls = document.getElementById('xml-find-controls');
+                if (findControls && this.showXMLFind) {
+                    this.showXMLFind();
+                }
+            }
         }
     }
 
@@ -405,15 +410,55 @@ class UIManager {
      */
     onDocumentChange(document) {
         if (document) {
+            this.documentType = document.metadata?.documentType || 'ccd';
+            this.generateDynamicTabs();
             this.showView('document');
             this.renderTabs();
             this.renderTabContent();
         } else {
+            this.documentType = null;
             this.showView('empty');
         }
         
         // Update UI including status bar
         this.updateUI();
+    }
+
+    /**
+     * Generate dynamic tabs based on document type
+     */
+    generateDynamicTabs() {
+        if (!this.documentType) return;
+
+        // Initialize dependencies if not already done
+        if (!this.sectionRegistry) {
+            this.initializeDependencies();
+        }
+
+        if (this.sectionRegistry) {
+            this.supportedSections = this.sectionRegistry.getSupportedSections(this.documentType);
+            console.log(`Generated ${this.supportedSections.length} tabs for document type: ${this.documentType}`);
+        } else {
+            // Fallback to basic sections if registry not available
+            this.supportedSections = this.getBasicSections();
+            console.warn('Section registry not available, using basic sections');
+        }
+    }
+
+    /**
+     * Get basic sections as fallback
+     */
+    getBasicSections() {
+        return [
+            { id: 'header', label: 'Document Info', icon: '📄', required: true },
+            { id: 'patient', label: 'Patient Info', icon: '👤', required: true },
+            { id: 'allergies', label: 'Allergies', icon: '⚠️', required: false },
+            { id: 'medications', label: 'Medications', icon: '💊', required: false },
+            { id: 'problems', label: 'Problems', icon: '🔍', required: false },
+            { id: 'procedures', label: 'Procedures', icon: '🏥', required: false },
+            { id: 'vitals', label: 'Vital Signs', icon: '📊', required: false },
+            { id: 'labs', label: 'Lab Results', icon: '🧪', required: false }
+        ];
     }
 
     /**
@@ -424,26 +469,40 @@ class UIManager {
         if (!tabButtons) return;
 
         const ccdDocument = window.store?.getState('document');
-        if (!ccdDocument) return;
+        if (!ccdDocument || !this.supportedSections) return;
 
         tabButtons.innerHTML = '';
 
-        this.tabs.forEach(tab => {
-            // Check if tab has data
-            const hasData = this.hasTabData(tab.id, ccdDocument);
+        this.supportedSections.forEach(section => {
+            // Check if section has data
+            const hasData = this.hasTabData(section.id, ccdDocument);
             
-            const button = document.createElement('button');
-            button.className = `tab-button winamp-button px-3 py-2 text-sm ${this.activeTab === tab.id ? 'active' : ''}`;
-            button.setAttribute('data-tab', tab.id);
-            button.innerHTML = `${tab.icon} ${tab.label}`;
-            
-            if (!hasData) {
-                button.style.opacity = '0.5';
-                button.title = 'No data available';
-            }
-
+            const button = this.createTabButton(section, hasData);
             tabButtons.appendChild(button);
         });
+    }
+
+    /**
+     * Create a tab button for a section
+     */
+    createTabButton(section, hasData) {
+        const button = document.createElement('button');
+        button.className = `tab-button winamp-button px-3 py-2 text-sm ${this.activeTab === section.id ? 'active' : ''}`;
+        button.setAttribute('data-tab', section.id);
+        button.innerHTML = `${section.icon} ${section.label}`;
+        
+        if (section.required) {
+            button.classList.add('required-section');
+        }
+        
+        if (!hasData) {
+            button.style.opacity = '0.5';
+            button.title = 'No data available';
+        } else if (section.required) {
+            button.title = 'Required section';
+        }
+
+        return button;
     }
 
     /**
@@ -459,26 +518,30 @@ class UIManager {
             case 'procedures': return document.procedures?.length > 0;
             case 'encounters': return document.encounters?.length > 0;
             case 'immunizations': return document.immunizations?.length > 0;
-            case 'vitals': return document.vitalSigns?.length > 0;
-            case 'labs': return document.labResults?.length > 0;
+            case 'vitals': return document.vitals?.length > 0 || document.vitalSigns?.length > 0;
+            case 'labs': return document.labs?.length > 0 || document.labResults?.length > 0;
+            case 'results': return document.results?.length > 0 || document.labResults?.length > 0;
             case 'socialHistory': return document.socialHistory?.length > 0;
             case 'functionalStatus': return document.functionalStatus?.length > 0;
             case 'planOfCare': return document.planOfCare?.length > 0;
             case 'notes': return document.notes?.length > 0;
             case 'advanceDirectives': return document.advanceDirectives?.length > 0;
-            case 'assessment': return document.assessment?.length > 0;
-            case 'chiefComplaint': return document.chiefComplaint?.length > 0;
-            case 'familyHistory': return document.familyHistory?.length > 0;
-            case 'goals': return document.goals?.length > 0;
-            case 'healthConcerns': return document.healthConcerns?.length > 0;
-            case 'instructions': return document.instructions?.length > 0;
-            case 'medicalEquipment': return document.medicalEquipment?.length > 0;
-            case 'mentalStatus': return document.mentalStatus?.length > 0;
-            case 'nutrition': return document.nutrition?.length > 0;
-            case 'payers': return document.payers?.length > 0;
-            case 'physicalExam': return document.physicalExam?.length > 0;
-            case 'reasonForVisit': return document.reasonForVisit?.length > 0;
-            case 'reviewOfSystems': return document.reviewOfSystems?.length > 0;
+            case 'assessment': return !!document.assessment && (Array.isArray(document.assessment) ? document.assessment.length > 0 : !!document.assessment.text);
+            case 'chiefComplaint': return !!document.chiefComplaint && (Array.isArray(document.chiefComplaint) ? document.chiefComplaint.length > 0 : !!(document.chiefComplaint.text || document.chiefComplaint.structuredText?.length));
+            case 'familyHistory': return !!document.familyHistory && (Array.isArray(document.familyHistory) ? document.familyHistory.length > 0 : !!document.familyHistory.text);
+            case 'goals': return !!document.goals && (Array.isArray(document.goals) ? document.goals.length > 0 : !!document.goals.text);
+            case 'healthConcerns': return !!document.healthConcerns && (Array.isArray(document.healthConcerns) ? document.healthConcerns.length > 0 : !!document.healthConcerns.text);
+            case 'instructions': return !!document.instructions && (Array.isArray(document.instructions) ? document.instructions.length > 0 : !!document.instructions.text);
+            case 'medicalEquipment': return !!document.medicalEquipment && (Array.isArray(document.medicalEquipment) ? document.medicalEquipment.length > 0 : !!document.medicalEquipment.text);
+            case 'mentalStatus': return !!document.mentalStatus && (Array.isArray(document.mentalStatus) ? document.mentalStatus.length > 0 : !!document.mentalStatus.text);
+            case 'nutrition': return !!document.nutrition && (Array.isArray(document.nutrition) ? document.nutrition.length > 0 : !!document.nutrition.text);
+            case 'payers': return !!document.payers && (Array.isArray(document.payers) ? document.payers.length > 0 : !!document.payers.text);
+            case 'physicalExam': return !!document.physicalExam && (Array.isArray(document.physicalExam) ? document.physicalExam.length > 0 : !!document.physicalExam.text);
+            case 'reasonForVisit': return !!document.reasonForVisit && (Array.isArray(document.reasonForVisit) ? document.reasonForVisit.length > 0 : !!document.reasonForVisit.text);
+            case 'reviewOfSystems': return !!document.reviewOfSystems && (Array.isArray(document.reviewOfSystems) ? document.reviewOfSystems.length > 0 : !!document.reviewOfSystems.text);
+            case 'subjectiveData': return !!document.subjectiveData && (Array.isArray(document.subjectiveData) ? document.subjectiveData.length > 0 : !!document.subjectiveData.text);
+            case 'objectiveData': return !!document.objectiveData && (Array.isArray(document.objectiveData) ? document.objectiveData.length > 0 : !!document.objectiveData.text);
+            case 'planOfTreatment': return !!document.planOfTreatment && (Array.isArray(document.planOfTreatment) ? document.planOfTreatment.length > 0 : !!document.planOfTreatment.text);
             case 'rawXML': return !!window.store?.getState('rawXML');
             default: return false;
         }
@@ -522,99 +585,73 @@ class UIManager {
             contentElement.innerHTML = '<p class="text-text-secondary">No document loaded</p>';
             return;
         }
-
+        
+        // Use dynamic rendering based on section
+        let sectionData = ccdDocument[this.activeTab];
+        
+        // Debug specific tabs
+        if (['allergies', 'medications', 'labs', 'vitals'].includes(this.activeTab)) {
+            console.log(`=== UI Rendering ${this.activeTab} ===`);
+            console.log('Available document keys:', Object.keys(ccdDocument));
+            console.log(`ccdDocument.${this.activeTab}:`, ccdDocument[this.activeTab]);
+            console.log('sectionData:', sectionData);
+        }
+        
+        // Handle field name mismatches between parser and UI
+        if (this.activeTab === 'labs' && !sectionData && ccdDocument.labResults) {
+            sectionData = ccdDocument.labResults;
+        }
+        if (this.activeTab === 'vitals' && !sectionData && ccdDocument.vitalSigns) {
+            sectionData = ccdDocument.vitalSigns;
+        }
+        if (this.activeTab === 'results' && !sectionData && ccdDocument.labResults) {
+            sectionData = ccdDocument.labResults;
+        }
         let content = '';
 
-        switch (this.activeTab) {
-            case 'header':
-                content = this.renderHeaderContent(ccdDocument.header, ccdDocument.sectionMetadata);
-                break;
-            case 'patient':
-                content = this.renderPatientContent(ccdDocument.patient);
-                break;
-            case 'allergies':
-                content = this.renderAllergiesContent(ccdDocument.allergies || []);
-                break;
-            case 'medications':
-                content = this.renderMedicationsContent(ccdDocument.medications || []);
-                break;
-            case 'problems':
-                content = this.renderProblemsContent(ccdDocument.problems || []);
-                break;
-            case 'procedures':
-                content = this.renderProceduresContent(ccdDocument.procedures || []);
-                break;
-            case 'encounters':
-                content = this.renderEncountersContent(ccdDocument.encounters || []);
-                break;
-            case 'immunizations':
-                content = this.renderImmunizationsContent(ccdDocument.immunizations || []);
-                break;
-            case 'vitals':
-                content = this.renderVitalsContent(ccdDocument.vitalSigns || []);
-                break;
-            case 'labs':
-                content = this.renderLabsContent(ccdDocument.labResults || []);
-                break;
-            case 'socialHistory':
-                content = this.renderSocialHistoryContent(ccdDocument.socialHistory || []);
-                break;
-            case 'functionalStatus':
-                content = this.renderFunctionalStatusContent(ccdDocument.functionalStatus || []);
-                break;
-            case 'planOfCare':
-                content = this.renderPlanOfCareContent(ccdDocument.planOfCare || []);
-                break;
-            case 'notes':
-                content = this.renderNotesContent(ccdDocument.notes || []);
-                break;
-            case 'advanceDirectives':
-                content = this.renderAdvanceDirectivesContent(ccdDocument.advanceDirectives || []);
-                break;
-            case 'assessment':
-                content = this.renderAssessmentContent(ccdDocument.assessment || []);
-                break;
-            case 'chiefComplaint':
-                content = this.renderChiefComplaintContent(ccdDocument.chiefComplaint || []);
-                break;
-            case 'familyHistory':
-                content = this.renderFamilyHistoryContent(ccdDocument.familyHistory || []);
-                break;
-            case 'goals':
-                content = this.renderGoalsContent(ccdDocument.goals || []);
-                break;
-            case 'healthConcerns':
-                content = this.renderHealthConcernsContent(ccdDocument.healthConcerns || []);
-                break;
-            case 'instructions':
-                content = this.renderInstructionsContent(ccdDocument.instructions || []);
-                break;
-            case 'medicalEquipment':
-                content = this.renderMedicalEquipmentContent(ccdDocument.medicalEquipment || []);
-                break;
-            case 'mentalStatus':
-                content = this.renderMentalStatusContent(ccdDocument.mentalStatus || []);
-                break;
-            case 'nutrition':
-                content = this.renderNutritionContent(ccdDocument.nutrition || []);
-                break;
-            case 'payers':
-                content = this.renderPayersContent(ccdDocument.payers || []);
-                break;
-            case 'physicalExam':
-                content = this.renderPhysicalExamContent(ccdDocument.physicalExam || []);
-                break;
-            case 'reasonForVisit':
-                content = this.renderReasonForVisitContent(ccdDocument.reasonForVisit || []);
-                break;
-            case 'reviewOfSystems':
-                content = this.renderReviewOfSystemsContent(ccdDocument.reviewOfSystems || []);
-                break;
-            case 'rawXML':
-                content = this.renderRawXMLContent();
-                break;
-            default:
-                content = '<p class="text-text-secondary">Tab content not implemented</p>';
+        // Special handling for specific sections
+        if (this.activeTab === 'header') {
+            content = this.renderHeaderContent(ccdDocument.header, ccdDocument.sectionMetadata);
+        } else if (this.activeTab === 'patient') {
+            content = this.renderPatientContent(ccdDocument.patient);
+        } else if (this.activeTab === 'rawXML') {
+            content = this.renderRawXMLContent(ccdDocument.raw);
+        } else {
+            // For standard clinical sections, use legacy renderers directly
+            const standardSections = ['allergies', 'medications', 'problems', 'procedures', 'encounters', 'immunizations', 'vitals', 'labs', 'results', 'socialHistory', 'functionalStatus', 'planOfCare', 'notes', 'advanceDirectives'];
+            
+            console.log(`=== ROUTING CHECK: ${this.activeTab} in standardSections? ${standardSections.includes(this.activeTab)} ===`);
+            
+            if (standardSections.includes(this.activeTab)) {
+                console.log(`=== USING LEGACY RENDERER FOR STANDARD SECTION ${this.activeTab} ===`);
+                content = this.renderLegacySection(this.activeTab, sectionData, ccdDocument);
+            } else {
+                // Use document renderer for dynamic sections
+                try {
+                    if (!this.documentRenderer) {
+                        this.initializeDependencies();
+                    }
+
+                    if (this.documentRenderer) {
+                        console.log(`=== Using DocumentRenderer for ${this.activeTab} ===`);
+                        content = this.documentRenderer.renderSection(
+                            this.activeTab, 
+                            sectionData, 
+                            this.documentType
+                        );
+                        console.log('DocumentRenderer result:', content);
+                    } else {
+                        console.log(`=== Using legacy renderer for ${this.activeTab} ===`);
+                        // Fallback to legacy rendering methods
+                        content = this.renderLegacySection(this.activeTab, sectionData, ccdDocument);
+                    }
+                } catch (error) {
+                    console.warn(`Error rendering section ${this.activeTab}:`, error);
+                    console.log(`=== Falling back to legacy renderer for ${this.activeTab} ===`);
+                    // Fallback to legacy rendering methods
+                    content = this.renderLegacySection(this.activeTab, sectionData, ccdDocument);
+                }
+            }
         }
 
         contentElement.innerHTML = content;
@@ -872,21 +909,29 @@ class UIManager {
      * Render allergies content
      */
     renderAllergiesContent(allergies) {
-        if (allergies.length === 0) {
+        console.log('=== renderAllergiesContent called ===');
+        console.log('allergies parameter:', allergies);
+        console.log('allergies type:', typeof allergies);
+        console.log('allergies length:', allergies?.length);
+        console.log('allergies[0]:', allergies?.[0]);
+        
+        if (!allergies || allergies.length === 0) {
             return '<p class="text-text-secondary">No allergies recorded</p>';
         }
 
-        const rows = allergies.map(allergy => `
-            <tr>
-                <td>${allergy.substance || 'Unknown'}</td>
-                <td>${allergy.reaction || 'Not specified'}</td>
-                <td>${allergy.severity || 'Not specified'}</td>
-                <td>${allergy.status || 'Unknown'}</td>
-                <td>${allergy.onsetDate ? window.store.formatDate(allergy.onsetDate) : 'Unknown'}</td>
-                <td>${allergy.id || 'Not specified'}</td>
-                <td>${allergy.effectiveTime?.value ? window.store.formatDate(allergy.effectiveTime.value) : (allergy.effectiveTime?.low ? window.store.formatDate(allergy.effectiveTime.low) : 'Not specified')}</td>
-            </tr>
-        `).join('');
+        const rows = allergies.filter(allergy => allergy).map(allergy => {
+            return `
+                <tr>
+                    <td>${allergy.substance || 'Unknown'}</td>
+                    <td>${Array.isArray(allergy.reaction) ? allergy.reaction.join(', ') : (allergy.reaction || 'Not specified')}</td>
+                    <td>${Array.isArray(allergy.severity) ? allergy.severity.join(', ') : (allergy.severity || 'Not specified')}</td>
+                    <td>${allergy.status || 'Unknown'}</td>
+                    <td>${allergy.onsetDate ? window.store.formatDate(allergy.onsetDate) : 'Unknown'}</td>
+                    <td>${allergy.id || 'Not specified'}</td>
+                    <td>${allergy.effectiveTime?.value ? window.store.formatDate(allergy.effectiveTime.value) : (allergy.effectiveTime?.low ? window.store.formatDate(allergy.effectiveTime.low) : 'Not specified')}</td>
+                </tr>
+            `;
+        }).join('');
 
         return `
             <div class="document-section">
@@ -915,19 +960,23 @@ class UIManager {
      * Render medications content
      */
     renderMedicationsContent(medications) {
-        if (medications.length === 0) {
+        // Debug logging removed for production
+        
+        if (!medications || medications.length === 0) {
             return '<p class="text-text-secondary">No medications recorded</p>';
         }
 
-        const rows = medications.map(med => `
-            <tr>
-                <td>${med.name || 'Unknown'}</td>
-                <td>${med.dosage || 'Not specified'}</td>
-                <td>${med.frequency || 'Not specified'}</td>
-                <td>${med.route || 'Not specified'}</td>
-                <td>${med.status || 'Unknown'}</td>
-            </tr>
-        `).join('');
+        const rows = medications.filter(med => med).map(med => {
+            return `
+                <tr>
+                    <td>${med.name || 'Unknown'}</td>
+                    <td>${med.dosage || 'Not specified'}</td>
+                    <td>${med.frequency || 'Not specified'}</td>
+                    <td>${med.route || 'Not specified'}</td>
+                    <td>${med.status || 'Unknown'}</td>
+                </tr>
+            `;
+        }).join('');
 
         return `
             <div class="document-section">
@@ -1065,11 +1114,14 @@ class UIManager {
      * Render vital signs content
      */
     renderVitalsContent(vitals) {
-        if (vitals.length === 0) {
+        // Debug logging removed for production
+        
+        if (!vitals || vitals.length === 0) {
             return '<p class="text-text-secondary">No vital signs recorded</p>';
         }
 
-        const rows = vitals.map(vital => `
+        const rows = vitals.filter(vital => vital).map(vital => {
+            return `
             <tr>
                 <td>${vital.date ? window.store.formatDate(vital.date) : 'Not specified'}</td>
                 <td>${vital.systolicBP ? `${vital.systolicBP.value} ${vital.systolicBP.unit}` : '-'}</td>
@@ -1078,7 +1130,8 @@ class UIManager {
                 <td>${vital.temperature ? `${vital.temperature.value} ${vital.temperature.unit}` : '-'}</td>
                 <td>${vital.weight ? `${vital.weight.value} ${vital.weight.unit}` : '-'}</td>
             </tr>
-        `).join('');
+            `;
+        }).join('');
 
         return `
             <div class="document-section">
@@ -1106,14 +1159,17 @@ class UIManager {
      * Render lab results content
      */
     renderLabsContent(labs) {
-        if (labs.length === 0) {
+        // Debug logging removed for production
+        
+        if (!labs || labs.length === 0) {
             return '<p class="text-text-secondary">No lab results recorded</p>';
         }
 
         return `
             <div class="document-section">
                 <h3>Lab Results</h3>
-                ${labs.map(lab => `
+                ${labs.filter(lab => lab).map(lab => {
+                    return `
                     <div class="mb-4">
                         <h4>${lab.panel || 'Lab Panel'} - ${lab.date ? window.store.formatDate(lab.date) : 'Date unknown'}</h4>
                         <table class="document-table">
@@ -1137,7 +1193,8 @@ class UIManager {
                             </tbody>
                         </table>
                     </div>
-                `).join('')}
+                    `;
+                }).join('')}
             </div>
         `;
     }
@@ -1405,25 +1462,71 @@ class UIManager {
     /**
      * Render chief complaint content
      */
-    renderChiefComplaintContent(complaints) {
-        if (complaints.length === 0) {
+    renderChiefComplaintContent(complaint) {
+        if (!complaint) {
+            return '<p class="text-text-secondary">No chief complaint recorded</p>';
+        }
+
+        // Handle both array format (legacy) and object format (CCDA)
+        if (Array.isArray(complaint)) {
+            if (complaint.length === 0) {
+                return '<p class="text-text-secondary">No chief complaint recorded</p>';
+            }
+            // Legacy array format
+            return `
+                <div class="document-section">
+                    <h3>Chief Complaint</h3>
+                    ${complaint.map(item => `
+                        <div class="complaint-entry mb-4 p-4 bg-black/20 rounded border border-primary/10">
+                            <div class="complaint-header mb-2">
+                                <strong class="text-primary">Primary Concern</strong>
+                                ${item.date ? `<span class="text-text-secondary ml-2">• ${window.store.formatDate(item.date)}</span>` : ''}
+                            </div>
+                            <div class="complaint-content">
+                                <p class="text-text-primary">${this.escapeHtml(item.complaint || 'No complaint recorded')}</p>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
+        // CCDA object format
+        const textContent = complaint.text || '';
+        const structuredContent = complaint.structuredText || [];
+        
+        if (!textContent && (!structuredContent || structuredContent.length === 0)) {
             return '<p class="text-text-secondary">No chief complaint recorded</p>';
         }
 
         return `
             <div class="document-section">
                 <h3>Chief Complaint</h3>
-                ${complaints.map(complaint => `
-                    <div class="complaint-entry mb-4 p-4 bg-black/20 rounded border border-primary/10">
-                        <div class="complaint-header mb-2">
-                            <strong class="text-primary">Primary Concern</strong>
-                            ${complaint.date ? `<span class="text-text-secondary ml-2">• ${window.store.formatDate(complaint.date)}</span>` : ''}
-                        </div>
-                        <div class="complaint-content">
-                            <p class="text-text-primary">${this.escapeHtml(complaint.complaint || 'No complaint recorded')}</p>
-                        </div>
+                <div class="complaint-entry mb-4 p-4 bg-black/20 rounded border border-primary/10">
+                    <div class="complaint-header mb-2">
+                        <strong class="text-primary">Chief Complaint</strong>
+                        ${complaint.code ? `<span class="text-text-secondary ml-2">• Code: ${complaint.code}</span>` : ''}
                     </div>
-                `).join('')}
+                    <div class="complaint-content">
+                        ${textContent ? `<p class="text-text-primary">${this.escapeHtml(textContent)}</p>` : ''}
+                        ${structuredContent && structuredContent.length > 0 ? `
+                            <div class="structured-content mt-2">
+                                ${structuredContent.map(item => {
+                                    if (item.type === 'list') {
+                                        return `
+                                            <ul class="text-text-primary">
+                                                ${item.items.map(listItem => `<li>${this.escapeHtml(listItem)}</li>`).join('')}
+                                            </ul>
+                                        `;
+                                    } else if (item.type === 'paragraph') {
+                                        return `<p class="text-text-primary">${this.escapeHtml(item.text)}</p>`;
+                                    }
+                                    return '';
+                                }).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
             </div>
         `;
     }
@@ -1838,6 +1941,43 @@ class UIManager {
                         </button>
                     </div>
                 </div>
+                
+                <!-- Find Controls -->
+                <div id="xml-find-controls" class="bg-black/40 rounded border border-primary/30 p-3 mb-4 hidden">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2 flex-1">
+                            <svg class="w-4 h-4 text-primary" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="m21 21-4.35-4.35"/>
+                            </svg>
+                            <input 
+                                type="text" 
+                                id="xml-search-input" 
+                                placeholder="Search XML content..." 
+                                class="bg-black/50 border border-primary/20 rounded px-3 py-1 text-primary text-sm flex-1 focus:outline-none focus:border-primary/50"
+                            />
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span id="xml-search-results" class="text-xs text-text-secondary">0/0</span>
+                            <button id="xml-search-prev" class="winamp-button p-1 text-xs" title="Previous match (Shift+Enter)">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m15 18-6-6 6-6"/>
+                                </svg>
+                            </button>
+                            <button id="xml-search-next" class="winamp-button p-1 text-xs" title="Next match (Enter)">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="m9 18 6-6-6-6"/>
+                                </svg>
+                            </button>
+                            <button id="xml-search-close" class="winamp-button p-1 text-xs" title="Close search (Escape)">
+                                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 6L6 18M6 6l12 12"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="bg-black/30 rounded border border-primary/20 p-4" style="max-height: 600px; overflow: auto;">
                     <pre id="xml-content-display" class="text-xs font-mono text-text-secondary whitespace-pre leading-relaxed" style="font-family: 'Consolas', 'Monaco', 'Courier New', monospace; tab-size: 2;">${this.escapeHtml(rawXML)}</pre>
                 </div>
@@ -1891,6 +2031,185 @@ class UIManager {
                 }
             }
         });
+
+        // Setup find functionality
+        this.setupXMLFindFunctionality();
+    }
+
+    /**
+     * Setup XML find functionality
+     */
+    setupXMLFindFunctionality() {
+        const searchInput = document.getElementById('xml-search-input');
+        const findControls = document.getElementById('xml-find-controls');
+        const searchResults = document.getElementById('xml-search-results');
+        const prevButton = document.getElementById('xml-search-prev');
+        const nextButton = document.getElementById('xml-search-next');
+        const closeButton = document.getElementById('xml-search-close');
+        const xmlDisplay = document.getElementById('xml-content-display');
+
+        if (!searchInput || !findControls || !xmlDisplay) return;
+
+        let matches = [];
+        let currentMatchIndex = -1;
+        let originalContent = '';
+
+        // Store original content
+        originalContent = xmlDisplay.textContent || '';
+
+        // Search function
+        const performSearch = (searchTerm) => {
+            if (!searchTerm) {
+                this.clearXMLSearch(xmlDisplay, originalContent);
+                searchResults.textContent = '0/0';
+                return;
+            }
+
+            // Clear previous search
+            this.clearXMLSearch(xmlDisplay, originalContent);
+            matches = [];
+            currentMatchIndex = -1;
+
+            // Find all matches (case insensitive)
+            const content = originalContent;
+            const regex = new RegExp(this.escapeRegex(searchTerm), 'gi');
+            let match;
+            
+            while ((match = regex.exec(content)) !== null) {
+                matches.push({
+                    index: match.index,
+                    length: searchTerm.length,
+                    text: match[0]
+                });
+                
+                // Prevent infinite loop for zero-length matches
+                if (match.index === regex.lastIndex) {
+                    regex.lastIndex++;
+                }
+            }
+
+            // Update results count
+            searchResults.textContent = matches.length > 0 ? `0/${matches.length}` : '0/0';
+
+            if (matches.length > 0) {
+                this.highlightXMLMatches(xmlDisplay, matches, searchTerm);
+                this.goToXMLMatch(0);
+            }
+        };
+
+        // Navigate to specific match
+        this.goToXMLMatch = (index) => {
+            if (matches.length === 0 || index < 0 || index >= matches.length) return;
+
+            currentMatchIndex = index;
+            searchResults.textContent = `${currentMatchIndex + 1}/${matches.length}`;
+
+            // Remove previous current highlight
+            const prevCurrent = xmlDisplay.querySelector('.xml-search-current');
+            if (prevCurrent) {
+                prevCurrent.classList.remove('xml-search-current');
+            }
+
+            // Add current highlight to new match
+            const allHighlights = xmlDisplay.querySelectorAll('.xml-search-match');
+            if (allHighlights[currentMatchIndex]) {
+                allHighlights[currentMatchIndex].classList.add('xml-search-current');
+                allHighlights[currentMatchIndex].scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'center'
+                });
+            }
+        };
+
+        // Search input events
+        searchInput.addEventListener('input', (e) => {
+            performSearch(e.target.value);
+        });
+
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                if (e.shiftKey) {
+                    this.goToXMLMatch(currentMatchIndex - 1 < 0 ? matches.length - 1 : currentMatchIndex - 1);
+                } else {
+                    this.goToXMLMatch(currentMatchIndex + 1 >= matches.length ? 0 : currentMatchIndex + 1);
+                }
+            } else if (e.key === 'Escape') {
+                this.closeXMLFind();
+            }
+        });
+
+        // Navigation buttons
+        prevButton?.addEventListener('click', () => {
+            this.goToXMLMatch(currentMatchIndex - 1 < 0 ? matches.length - 1 : currentMatchIndex - 1);
+        });
+
+        nextButton?.addEventListener('click', () => {
+            this.goToXMLMatch(currentMatchIndex + 1 >= matches.length ? 0 : currentMatchIndex + 1);
+        });
+
+        // Close button
+        closeButton?.addEventListener('click', () => {
+            this.closeXMLFind();
+        });
+
+        // Close find function
+        this.closeXMLFind = () => {
+            findControls.classList.add('hidden');
+            this.clearXMLSearch(xmlDisplay, originalContent);
+            searchInput.value = '';
+            searchResults.textContent = '0/0';
+            matches = [];
+            currentMatchIndex = -1;
+        };
+
+        // Show find function
+        this.showXMLFind = () => {
+            originalContent = xmlDisplay.textContent || '';
+            findControls.classList.remove('hidden');
+            searchInput.focus();
+        };
+    }
+
+    /**
+     * Highlight matches in XML content
+     */
+    highlightXMLMatches(element, matches, searchTerm) {
+        let content = element.textContent || '';
+        let highlightedContent = '';
+        let lastIndex = 0;
+
+        // Sort matches by index
+        matches.sort((a, b) => a.index - b.index);
+
+        matches.forEach((match) => {
+            // Add content before match
+            highlightedContent += this.escapeHtml(content.substring(lastIndex, match.index));
+            
+            // Add highlighted match
+            highlightedContent += `<mark class="xml-search-match bg-yellow-400/30 text-yellow-200">${this.escapeHtml(content.substring(match.index, match.index + match.length))}</mark>`;
+            
+            lastIndex = match.index + match.length;
+        });
+
+        // Add remaining content
+        highlightedContent += this.escapeHtml(content.substring(lastIndex));
+
+        element.innerHTML = highlightedContent;
+    }
+
+    /**
+     * Clear XML search highlighting
+     */
+    clearXMLSearch(element, originalContent) {
+        element.textContent = originalContent;
+    }
+
+    /**
+     * Escape regex special characters
+     */
+    escapeRegex(string) {
+        return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     }
 
     /**
@@ -2080,7 +2399,83 @@ class UIManager {
             observer.observe(el);
         });
     }
+
+    /**
+     * Fallback legacy section rendering for backward compatibility
+     */
+    renderLegacySection(sectionId, sectionData, ccdDocument) {
+        console.log(`=== renderLegacySection called for ${sectionId} ===`);
+        console.log('sectionData:', sectionData);
+        switch (sectionId) {
+            case 'allergies':
+                return this.renderAllergiesContent(sectionData || []);
+            case 'medications':
+                return this.renderMedicationsContent(sectionData || []);
+            case 'problems':
+                return this.renderProblemsContent(sectionData || []);
+            case 'procedures':
+                return this.renderProceduresContent(sectionData || []);
+            case 'encounters':
+                return this.renderEncountersContent(sectionData || []);
+            case 'immunizations':
+                return this.renderImmunizationsContent(sectionData || []);
+            case 'vitals':
+                return this.renderVitalsContent(sectionData || []);
+            case 'labs':
+                return this.renderLabsContent(sectionData || []);
+            case 'results':
+                return this.renderLabsContent(sectionData || []);
+            case 'socialHistory':
+                return this.renderSocialHistoryContent(sectionData || []);
+            case 'functionalStatus':
+                return this.renderFunctionalStatusContent(sectionData || []);
+            case 'planOfCare':
+                return this.renderPlanOfCareContent(sectionData || []);
+            case 'notes':
+                return this.renderNotesContent(sectionData || []);
+            case 'advanceDirectives':
+                return this.renderAdvanceDirectivesContent(sectionData || []);
+            case 'assessment':
+                return this.renderAssessmentContent(sectionData || []);
+            case 'chiefComplaint':
+                return this.renderChiefComplaintContent(sectionData || []);
+            case 'familyHistory':
+                return this.renderFamilyHistoryContent(sectionData || []);
+            case 'goals':
+                return this.renderGoalsContent(sectionData || []);
+            case 'healthConcerns':
+                return this.renderHealthConcernsContent(sectionData || []);
+            case 'instructions':
+                return this.renderInstructionsContent(sectionData || []);
+            case 'medicalEquipment':
+                return this.renderMedicalEquipmentContent(sectionData || []);
+            case 'mentalStatus':
+                return this.renderMentalStatusContent(sectionData || []);
+            case 'nutrition':
+                return this.renderNutritionContent(sectionData || []);
+            case 'payers':
+                return this.renderPayersContent(sectionData || []);
+            case 'physicalExam':
+                return this.renderPhysicalExamContent(sectionData || []);
+            case 'reasonForVisit':
+                return this.renderReasonForVisitContent(sectionData || []);
+            case 'reviewOfSystems':
+                return this.renderReviewOfSystemsContent(sectionData || []);
+            default:
+                return '<p class="text-text-secondary">Tab content not implemented</p>';
+        }
+    }
 }
 
+// Ensure UIManager is available globally first
+window.UIManager = UIManager;
+console.log('UIManager class loaded');
+
 // Create global UI manager
-window.uiManager = new UIManager();
+try {
+    window.uiManager = new UIManager();
+    console.log('UIManager instance created successfully');
+} catch (error) {
+    console.error('Failed to create UIManager instance:', error);
+    window.uiManager = null;
+}

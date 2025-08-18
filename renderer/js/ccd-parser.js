@@ -144,7 +144,7 @@ class CCDParser {
     }
 
     parseAllergies(document) {
-        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.6.1');
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.6');
         if (!section?.entry) return [];
 
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
@@ -181,10 +181,16 @@ class CCDParser {
     }
 
     parseMedications(document) {
-        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.1.1');
-        if (!section?.entry) return [];
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.1');
+        console.log('Medications section found:', !!section);
+        console.log('Medications section entry:', section?.entry);
+        if (!section?.entry) {
+            console.log('No medications entries found');
+            return [];
+        }
 
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
+        console.log('Medications entries count:', entries.length);
         
         return entries.map(entry => {
             const substanceAdmin = entry.substanceAdministration;
@@ -211,7 +217,7 @@ class CCDParser {
     }
 
     parseProblems(document) {
-        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.5.1');
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.5');
         if (!section?.entry) return [];
 
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
@@ -235,7 +241,7 @@ class CCDParser {
     }
 
     parseProcedures(document) {
-        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.7.1');
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.7');
         if (!section?.entry) return [];
 
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
@@ -280,7 +286,7 @@ class CCDParser {
     }
 
     parseImmunizations(document) {
-        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.2.1');
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.2');
         if (!section?.entry) return [];
 
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
@@ -306,7 +312,7 @@ class CCDParser {
     }
 
     parseVitalSigns(document) {
-        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.4.1');
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.4');
         if (!section?.entry) return [];
 
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
@@ -348,7 +354,7 @@ class CCDParser {
     }
 
     parseLabResults(document) {
-        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.3.1');
+        const section = this.findSection(document, '2.16.840.1.113883.10.20.22.2.3');
         if (!section?.entry) return [];
 
         const entries = Array.isArray(section.entry) ? section.entry : [section.entry];
@@ -849,19 +855,39 @@ class CCDParser {
     // Helper methods
     findSection(document, templateId) {
         const component = document.component?.structuredBody?.component;
-        if (!component) return null;
+        if (!component) {
+            console.log(`findSection: no component found for templateId ${templateId}`);
+            return null;
+        }
 
         const components = Array.isArray(component) ? component : [component];
+        console.log(`findSection: searching ${components.length} components for templateId ${templateId}`);
         
-        return components.find(comp => {
+        const found = components.find(comp => {
             const section = comp.section;
             if (!section) return false;
             
             const templates = Array.isArray(section.templateId) ? 
                 section.templateId : [section.templateId];
+            
+            // Log all template IDs in this section for debugging
+            templates.forEach(t => {
+                if (t && t['@_root']) {
+                    console.log(`  Section has templateId: ${t['@_root']}`);
+                }
+            });
                 
-            return templates.some(t => t && t['@_root'] === templateId);
+            const hasTemplate = templates.some(t => t && t['@_root'] === templateId);
+            if (hasTemplate) {
+                console.log(`findSection: found section with templateId ${templateId}`);
+            }
+            return hasTemplate;
         })?.section;
+        
+        if (!found) {
+            console.log(`findSection: section with templateId ${templateId} not found`);
+        }
+        return found;
     }
 
     getIdType(root) {
