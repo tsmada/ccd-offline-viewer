@@ -501,6 +501,12 @@ class DocumentRenderer {
     renderTransferDx(data) { return this.renderGenericSection(data); }
     renderTransferSummary(data) { return this.renderGenericSection(data); }
     renderInstructions(data) { return this.renderGenericSection(data); }
+    renderPlannedProcedure(data) { return this.renderGenericSection(data); }
+    renderSurgicalDrains(data) { return this.renderGenericSection(data); }
+    renderProcedureImplants(data) { return this.renderGenericSection(data); }
+    renderProcedureSpecimens(data) { return this.renderGenericSection(data); }
+    renderPostprocedureDx(data) { return this.renderGenericSection(data); }
+    renderProcedureDisposition(data) { return this.renderGenericSection(data); }
 }
 
 /**

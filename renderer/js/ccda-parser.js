@@ -36,7 +36,9 @@ class CCDAParser extends CCDParser {
             console.log('Full document structure:', document);
             
             // Detect document type and version
-            this.documentType = this.detectDocumentType(document);
+            this.documentType = this.documentTypeDetector ? 
+                this.documentTypeDetector.detectDocumentType(document) : 
+                this.detectDocumentType(document);
             const documentVersion = this.versionTracker ? 
                 this.versionTracker.detectVersion(document) : 'unknown';
             
@@ -124,6 +126,11 @@ class CCDAParser extends CCDParser {
         const templateIds = this.extractTemplateIds(document);
         console.log('Extracted template IDs:', templateIds);
         
+        // Check for Procedure Note
+        if (templateIds.includes('2.16.840.1.113883.10.20.22.1.6')) {
+            return 'procedure';
+        }
+        
         // Check for Progress Note
         if (templateIds.includes('2.16.840.1.113883.10.20.22.1.9')) {
             return 'progress';
@@ -137,6 +144,21 @@ class CCDAParser extends CCDParser {
         // Check for History and Physical
         if (templateIds.includes('2.16.840.1.113883.10.20.22.1.3')) {
             return 'historyPhysical';
+        }
+        
+        // Check for Operative Note
+        if (templateIds.includes('2.16.840.1.113883.10.20.22.1.7')) {
+            return 'operative';
+        }
+        
+        // Check for Consultation Note
+        if (templateIds.includes('2.16.840.1.113883.10.20.22.1.4')) {
+            return 'consultationNote';
+        }
+        
+        // Check for Discharge Summary
+        if (templateIds.includes('2.16.840.1.113883.10.20.22.1.8')) {
+            return 'dischargeSummary';
         }
         
         // Default to CCD
@@ -196,11 +218,22 @@ class CCDAParser extends CCDParser {
                 break;
 
             case 'procedure':
+                sections.assessment = this.parseAssessment(document);
+                sections.planOfTreatment = this.parsePlanOfTreatment(document);
                 sections.procedureIndications = this.parseProcedureIndications(document);
+                sections.plannedProcedure = this.parsePlannedProcedure(document);
                 sections.procedureDescription = this.parseProcedureDescription(document);
-                sections.procedureFindings = this.parseProcedureFindings(document);
+                sections.preoperativeDx = this.parsePreoperativeDx(document);
                 sections.anesthesia = this.parseAnesthesia(document);
+                sections.surgicalDrains = this.parseSurgicalDrains(document);
+                sections.procedureFindings = this.parseProcedureFindings(document);
+                sections.bloodLoss = this.parseBloodLoss(document);
+                sections.procedureImplants = this.parseProcedureImplants(document);
+                sections.procedureSpecimens = this.parseProcedureSpecimens(document);
                 sections.complications = this.parseComplications(document);
+                sections.postoperativeDx = this.parsePostoperativeDx(document);
+                sections.postprocedureDx = this.parsePostprocedureDx(document);
+                sections.procedureDisposition = this.parseProcedureDisposition(document);
                 break;
 
             case 'dischargeSummary':
@@ -600,6 +633,12 @@ class CCDAParser extends CCDParser {
     parseTransferSummary(document) { return this.parseNarrativeSection(document, 'transfer summary'); }
     parseReceivingProvider(document) { return this.parseNarrativeSection(document, 'receiving provider'); }
     parseInstructions(document) { return this.parseGenericSection(document, '2.16.840.1.113883.10.20.22.2.45'); }
+    parsePlannedProcedure(document) { return this.parseGenericSection(document, '2.16.840.1.113883.10.20.22.2.30'); }
+    parseSurgicalDrains(document) { return this.parseGenericSection(document, '2.16.840.1.113883.10.20.7.13'); }
+    parseProcedureImplants(document) { return this.parseGenericSection(document, '2.16.840.1.113883.10.20.22.2.40'); }
+    parseProcedureSpecimens(document) { return this.parseGenericSection(document, '2.16.840.1.113883.10.20.22.2.31'); }
+    parsePostprocedureDx(document) { return this.parseGenericSection(document, '2.16.840.1.113883.10.20.22.2.36'); }
+    parseProcedureDisposition(document) { return this.parseGenericSection(document, '2.16.840.1.113883.10.20.18.2.12'); }
     parseSubjectiveData(document) { 
         const section = this.findSection(document, '2.16.840.1.113883.10.20.21.2.2');
         if (!section) return null;

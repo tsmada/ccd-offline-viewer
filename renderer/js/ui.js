@@ -542,6 +542,21 @@ class UIManager {
             case 'subjectiveData': return !!document.subjectiveData && (Array.isArray(document.subjectiveData) ? document.subjectiveData.length > 0 : !!document.subjectiveData.text);
             case 'objectiveData': return !!document.objectiveData && (Array.isArray(document.objectiveData) ? document.objectiveData.length > 0 : !!document.objectiveData.text);
             case 'planOfTreatment': return !!document.planOfTreatment && (Array.isArray(document.planOfTreatment) ? document.planOfTreatment.length > 0 : !!document.planOfTreatment.text);
+            // Procedure note specific sections
+            case 'procedureIndications': return !!document.procedureIndications && (Array.isArray(document.procedureIndications) ? document.procedureIndications.length > 0 : !!document.procedureIndications.text);
+            case 'plannedProcedure': return !!document.plannedProcedure && (Array.isArray(document.plannedProcedure) ? document.plannedProcedure.length > 0 : !!document.plannedProcedure.text);
+            case 'procedureDescription': return !!document.procedureDescription && (Array.isArray(document.procedureDescription) ? document.procedureDescription.length > 0 : !!document.procedureDescription.text);
+            case 'preoperativeDx': return !!document.preoperativeDx && (Array.isArray(document.preoperativeDx) ? document.preoperativeDx.length > 0 : !!document.preoperativeDx.text);
+            case 'anesthesia': return !!document.anesthesia && (Array.isArray(document.anesthesia) ? document.anesthesia.length > 0 : !!document.anesthesia.text);
+            case 'surgicalDrains': return !!document.surgicalDrains && (Array.isArray(document.surgicalDrains) ? document.surgicalDrains.length > 0 : !!document.surgicalDrains.text);
+            case 'procedureFindings': return !!document.procedureFindings && (Array.isArray(document.procedureFindings) ? document.procedureFindings.length > 0 : !!document.procedureFindings.text);
+            case 'bloodLoss': return !!document.bloodLoss && (Array.isArray(document.bloodLoss) ? document.bloodLoss.length > 0 : !!document.bloodLoss.text);
+            case 'procedureImplants': return !!document.procedureImplants && (Array.isArray(document.procedureImplants) ? document.procedureImplants.length > 0 : !!document.procedureImplants.text);
+            case 'procedureSpecimens': return !!document.procedureSpecimens && (Array.isArray(document.procedureSpecimens) ? document.procedureSpecimens.length > 0 : !!document.procedureSpecimens.text);
+            case 'complications': return !!document.complications && (Array.isArray(document.complications) ? document.complications.length > 0 : !!document.complications.text);
+            case 'postoperativeDx': return !!document.postoperativeDx && (Array.isArray(document.postoperativeDx) ? document.postoperativeDx.length > 0 : !!document.postoperativeDx.text);
+            case 'postprocedureDx': return !!document.postprocedureDx && (Array.isArray(document.postprocedureDx) ? document.postprocedureDx.length > 0 : !!document.postprocedureDx.text);
+            case 'procedureDisposition': return !!document.procedureDisposition && (Array.isArray(document.procedureDisposition) ? document.procedureDisposition.length > 0 : !!document.procedureDisposition.text);
             case 'rawXML': return !!window.store?.getState('rawXML');
             default: return false;
         }

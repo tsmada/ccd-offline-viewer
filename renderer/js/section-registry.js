@@ -192,7 +192,7 @@ class SectionRegistry {
             label: 'Preoperative Diagnosis',
             icon: '🔍',
             required: true,
-            documentTypes: ['operative'],
+            documentTypes: ['operative', 'procedure'],
             parser: 'parsePreoperativeDx',
             renderer: 'renderPreoperativeDx'
         });
@@ -202,7 +202,7 @@ class SectionRegistry {
             label: 'Postoperative Diagnosis',
             icon: '✅',
             required: true,
-            documentTypes: ['operative'],
+            documentTypes: ['operative', 'procedure'],
             parser: 'parsePostoperativeDx',
             renderer: 'renderPostoperativeDx'
         });
@@ -242,19 +242,19 @@ class SectionRegistry {
             label: 'Estimated Blood Loss',
             icon: '🩸',
             required: false,
-            documentTypes: ['operative'],
+            documentTypes: ['operative', 'procedure'],
             parser: 'parseBloodLoss',
             renderer: 'renderBloodLoss'
         });
 
-        this.registerSection('surgicalSpecimens', {
+        this.registerSection('surgicalDrains', {
             templateId: '2.16.840.1.113883.10.20.7.13',
-            label: 'Surgical Specimens',
-            icon: '🧪',
+            label: 'Surgical Drains',
+            icon: '🩸',
             required: false,
-            documentTypes: ['operative'],
-            parser: 'parseSurgicalSpecimens',
-            renderer: 'renderSurgicalSpecimens'
+            documentTypes: ['operative', 'procedure'],
+            parser: 'parseSurgicalDrains',
+            renderer: 'renderSurgicalDrains'
         });
 
         // Procedure Note specific sections
@@ -276,6 +276,57 @@ class SectionRegistry {
             documentTypes: ['procedure'],
             parser: 'parseProcedureFindings',
             renderer: 'renderProcedureFindings'
+        });
+
+        this.registerSection('plannedProcedure', {
+            templateId: '2.16.840.1.113883.10.20.22.2.30',
+            label: 'Planned Procedure',
+            icon: '📋',
+            required: false,
+            documentTypes: ['procedure'],
+            parser: 'parsePlannedProcedure',
+            renderer: 'renderPlannedProcedure'
+        });
+
+
+        this.registerSection('procedureImplants', {
+            templateId: '2.16.840.1.113883.10.20.22.2.40',
+            label: 'Procedure Implants',
+            icon: '🔧',
+            required: false,
+            documentTypes: ['procedure'],
+            parser: 'parseProcedureImplants',
+            renderer: 'renderProcedureImplants'
+        });
+
+        this.registerSection('procedureSpecimens', {
+            templateId: '2.16.840.1.113883.10.20.22.2.31',
+            label: 'Procedure Specimens Taken',
+            icon: '🧪',
+            required: false,
+            documentTypes: ['procedure'],
+            parser: 'parseProcedureSpecimens',
+            renderer: 'renderProcedureSpecimens'
+        });
+
+        this.registerSection('postprocedureDx', {
+            templateId: '2.16.840.1.113883.10.20.22.2.36',
+            label: 'Postprocedure Diagnosis',
+            icon: '✅',
+            required: false,
+            documentTypes: ['procedure'],
+            parser: 'parsePostprocedureDx',
+            renderer: 'renderPostprocedureDx'
+        });
+
+        this.registerSection('procedureDisposition', {
+            templateId: '2.16.840.1.113883.10.20.18.2.12',
+            label: 'Procedure Disposition',
+            icon: '🏥',
+            required: false,
+            documentTypes: ['procedure'],
+            parser: 'parseProcedureDisposition',
+            renderer: 'renderProcedureDisposition'
         });
 
         // Discharge Summary specific sections
@@ -397,7 +448,7 @@ class SectionRegistry {
             label: 'Plan of Treatment',
             icon: '📋',
             required: true,
-            documentTypes: ['progress'],
+            documentTypes: ['progress', 'procedure'],
             parser: 'parsePlanOfTreatment',
             renderer: 'renderPlanOfTreatment'
         });
